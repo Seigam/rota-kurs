@@ -126,14 +126,24 @@ export function LifeDomainsMatrix() {
     planSteps: [],
   };
 
-  const updateCurrentState = (updates: Partial<DomainPlanState>) => {
-    setDomainStates((prev) => ({
-      ...prev,
-      [activeDomain]: {
-        ...currentDomainState,
-        ...updates,
-      },
-    }));
+  const updateCurrentState = (
+    updates: Partial<DomainPlanState> | ((prevDomainState: DomainPlanState) => Partial<DomainPlanState>)
+  ) => {
+    setDomainStates((prev) => {
+      const existing: DomainPlanState = prev[activeDomain] || {
+        wishText: '',
+        selectedGoal: '',
+        planSteps: [],
+      };
+      const resolvedUpdates = typeof updates === 'function' ? updates(existing) : updates;
+      return {
+        ...prev,
+        [activeDomain]: {
+          ...existing,
+          ...resolvedUpdates,
+        },
+      };
+    });
   };
 
   const handleGenerateGoals = async () => {
@@ -185,7 +195,7 @@ export function LifeDomainsMatrix() {
       });
       const data = await res.json();
       if (res.ok && data.steps) {
-        updateCurrentState({ planSteps: data.steps });
+        updateCurrentState({ selectedGoal: goalText, planSteps: data.steps });
       }
     } catch (err) {
       console.error('Generate steps error:', err);
@@ -199,21 +209,21 @@ export function LifeDomainsMatrix() {
       id: `step_${Date.now()}`,
       text: '',
     };
-    updateCurrentState({
-      planSteps: [...currentDomainState.planSteps, newStep],
-    });
+    updateCurrentState((prev) => ({
+      planSteps: [...(prev.planSteps || []), newStep],
+    }));
   };
 
   const handleRemoveStep = (id: string) => {
-    updateCurrentState({
-      planSteps: currentDomainState.planSteps.filter((s) => s.id !== id),
-    });
+    updateCurrentState((prev) => ({
+      planSteps: (prev.planSteps || []).filter((s) => s.id !== id),
+    }));
   };
 
   const handleStepTextChange = (id: string, text: string) => {
-    updateCurrentState({
-      planSteps: currentDomainState.planSteps.map((s) => (s.id === id ? { ...s, text } : s)),
-    });
+    updateCurrentState((prev) => ({
+      planSteps: (prev.planSteps || []).map((s) => (s.id === id ? { ...s, text } : s)),
+    }));
   };
 
   const handleSaveDomain = async () => {

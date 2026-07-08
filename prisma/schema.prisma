@@ -1,0 +1,395 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum TestStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum FamilyRelation {
+  ANNE
+  BABA
+  KARDES
+  DIGER
+  MOTHER
+  FATHER
+  SIBLING
+  GUARDIAN
+  OTHER
+}
+
+enum LifeDomain {
+  ACTIVITIES
+  FINANCIAL
+  HEALTH
+  HOUSING
+  SOCIAL
+  TRANSPORT
+  CAREER
+  ACADEMIC
+  PERSONAL_DEV
+  SOCIAL_EMOTIONAL
+  HEALTH_LIFESTYLE
+  HOBBIES_LEISURE
+}
+
+enum EntryType {
+  PLAN
+  HEDEF
+  ISTEK
+  GOAL
+  STATUS
+  WISH
+}
+
+enum PlanColumn {
+  GOAL
+  PLAN
+  STATUS
+  WISH
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  passwordHash String
+  role         Role            @default(STUDENT)
+  name         String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  profile        Profile?
+  teacherProfile TeacherProfile?
+  teacherNotes   CounselorNote[] @relation("TeacherWrittenNotes")
+}
+
+model School {
+  id          String       @id @default(uuid())
+  name        String
+  city        String
+  classGroups ClassGroup[]
+}
+
+model ClassGroup {
+  id       String    @id @default(uuid())
+  schoolId String
+  grade    Int
+  section  String    // e.g. "A", "B"
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  students Profile[]
+  teachers TeacherProfile[] @relation("TeacherClasses")
+
+  @@unique([schoolId, grade, section])
+}
+
+model Profile {
+  id               String          @id @default(uuid())
+  userId           String          @unique
+  classGroupId     String?
+  birthYear        Int?
+  grade            Int?
+  targetCareer     String?
+  hobbies          String?
+  favoriteSubjects String?
+  experiencePoints Int             @default(0)
+  currentLevel     Int             @default(1)
+  completedOnboarding Boolean      @default(false)
+  schoolName          String?
+  
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classGroup       ClassGroup?     @relation(fields: [classGroupId], references: [id], onDelete: SetNull)
+
+  familyMembers    FamilyMember[]
+  testAttempts     TestAttempt[]
+  testAnswers      TestAnswer[]
+  lifeDomainEntries LifeDomainEntry[]
+  domainPlans      DomainPlan[]
+  valueRankings    ValueRanking[]
+  profileRankings  ValueRanking[]  @relation("ProfileValueRankings")
+  favorites        FavoriteProgram[]
+  counselorNotes   CounselorNote[] @relation("StudentReceivedNotes")
+  recommendations  Recommendation[]
+  personalityResult PersonalityResult?
+
+  @@map("StudentProfile")
+}
+
+model TeacherProfile {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  classGroups ClassGroup[] @relation("TeacherClasses")
+}
+
+model RpgScenario {
+  id          String        @id @default(uuid())
+  title       String
+  version     String        @default("1.0")
+  isActive    Boolean       @default(true)
+  description String?
+  createdAt   DateTime      @default(now())
+
+  scenes      RpgScene[]
+  testAttempts TestAttempt[]
+}
+
+model RpgScene {
+  id            String       @id @default(uuid())
+  scenarioId    String
+  order         Int
+  sceneNumber   Int          @default(1)
+  title         String
+  narrativeText String
+  sceneType     String       @default("STORY")
+  bgImage       String?
+
+  scenario      RpgScenario  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  choices       RpgChoice[]
+  testAnswers   TestAnswer[]
+
+  @@unique([scenarioId, order])
+}
+
+model RpgChoice {
+  id               String       @id @default(uuid())
+  sceneId          String
+  choiceText       String
+  nextSceneId      String?
+  order            Int          @default(1)
+  mbtiWeights      String       @default("{}")
+  enneagramWeights String       @default("{}")
+  mbtiEffect       String?
+  enneagramEffect  String?
+
+  scene            RpgScene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  testAnswers      TestAnswer[]
+}
+
+model TestAttempt {
+  id               String                 @id @default(uuid())
+  studentId        String
+  scenarioId       String
+  startedAt        DateTime               @default(now())
+  completedAt      DateTime?
+  status           TestStatus             @default(IN_PROGRESS)
+  currentSceneId   String?
+
+  student          Profile                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  scenario         RpgScenario            @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  
+  answers          TestAnswer[]
+  result           PersonalityResult?
+  recommendations  Recommendation[]
+  domainPrefs      LifeDomainPreference[]
+}
+
+model TestAnswer {
+  id          String       @id @default(uuid())
+  attemptId   String?
+  sceneId     String
+  choiceId    String?
+  studentId   String?
+  userId      String?
+  answeredAt  DateTime     @default(now())
+  chosenAt    DateTime?    @default(now())
+
+  attempt     TestAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  scene       RpgScene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  choice      RpgChoice?   @relation(fields: [choiceId], references: [id], onDelete: Cascade)
+  student     Profile?     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, sceneId])
+}
+
+model PersonalityResult {
+  id                String      @id @default(uuid())
+  attemptId         String?     @unique
+  profileId         String?     @unique
+  mbtiType          String
+  enneagramType     Int         @default(1)
+  enneagramWing     Int?
+  scoreBreakdown    String      @default("{}")
+  mbtiScores        String?     @default("{}")
+  enneagramScores   String?     @default("{}")
+  dominantEnneagram String?
+  wingEnneagram     String?
+  fullEnneagramCode String?
+  summary           String?
+  strengths         String?     
+  blindSpots        String?
+  recommendedTrack  String?
+  studyHabits       String?
+  createdAt         DateTime    @default(now())
+
+  attempt           TestAttempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  profile           Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model FamilyMember {
+  id             String         @id @default(uuid())
+  studentId      String
+  relation       FamilyRelation
+  relationType   String?        @default("Aile Üyesi")
+  age            Int?
+  occupation     String?
+  educationLevel String?
+  closenessScore Int?           @default(3)
+  influenceScore Int?           @default(3)
+  supportLevel   String?        @default("Yüksek")
+  notes          String?
+  note           String?
+
+  student        Profile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model LifeDomainPreference {
+  id          String      @id @default(uuid())
+  attemptId   String
+  domain      LifeDomain
+  answerData  String
+
+  attempt     TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}
+
+model LifeDomainEntry {
+  id          String         @id @default(uuid())
+  studentId   String
+  domain      LifeDomain
+  entryType   EntryType
+  text        String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  student     Profile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, domain, entryType])
+}
+
+model DomainPlan {
+  id          String     @id @default(uuid())
+  studentId   String
+  domain      String
+  columnType  String
+  contentText String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  student     Profile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model ValueItem {
+  id           String         @id @default(uuid())
+  label        String
+  description  String?
+  isActive     Boolean        @default(true)
+  displayOrder Int
+  
+  rankings     ValueRanking[]
+}
+
+model ValueRanking {
+  id          String     @id @default(uuid())
+  studentId   String?
+  profileId   String?
+  valueItemId String?
+  valueName   String     @default("")
+  rankOrder   Int        @default(1)
+  rank        Int?       @default(1)
+  updatedAt   DateTime   @updatedAt
+
+  student     Profile?   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  profile     Profile?   @relation("ProfileValueRankings", fields: [profileId], references: [id], onDelete: Cascade)
+  valueItem   ValueItem? @relation(fields: [valueItemId], references: [id], onDelete: Cascade)
+
+  @@map("StudentValueRanking")
+}
+
+model CareerProgram {
+  id                    String             @id @default(uuid())
+  title                 String
+  description           String
+  category              String
+  requiredSkills        String             @default("[]")
+  relatedMbtiTypes      String             @default("[]")
+  relatedEnneagramTypes String             @default("[]")
+  relatedDomainTags     String             @default("[]")
+  relatedValueTags      String             @default("[]")
+  provider              String?
+  durationInfo          String?
+  costInfo              String?
+  link                  String?
+  duration              String?
+  minGrade              Int                @default(9)
+  mbtiFit               String?
+  enneagramFit          String?
+  url                   String?
+  isFree                Boolean            @default(true)
+  createdAt             DateTime           @default(now())
+
+  recommendations       Recommendation[]   @relation("ProgRecs")
+  attemptRecs           Recommendation[]   @relation("AttemptProgRecs")
+  favorites             FavoriteProgram[]
+}
+
+model Recommendation {
+  id              String        @id @default(uuid())
+  attemptId       String?
+  profileId       String?
+  careerProgramId String?
+  programId       String        @default("")
+  matchScore      Int           @default(50)
+  rank            Int           @default(1)
+  matchReason     String?
+  explanation     String?       @default("")
+  isFavorite      Boolean?      @default(false)
+
+  attempt         TestAttempt?   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  careerProgram   CareerProgram? @relation("AttemptProgRecs", fields: [careerProgramId], references: [id], onDelete: Cascade)
+  program         CareerProgram  @relation("ProgRecs", fields: [programId], references: [id], onDelete: Cascade)
+  profile         Profile?       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, programId])
+  @@unique([attemptId, careerProgramId])
+}
+
+model FavoriteProgram {
+  id              String         @id @default(uuid())
+  studentId       String
+  careerProgramId String
+  savedAt         DateTime       @default(now())
+
+  student         Profile        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  careerProgram   CareerProgram  @relation(fields: [careerProgramId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, careerProgramId])
+}
+
+model CounselorNote {
+  id          String    @id @default(uuid())
+  counselorId String    @map("teacherId")
+  studentId   String
+  content     String    @map("note")
+  noteText    String?
+  isPrivate   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  counselor   User    @relation("TeacherWrittenNotes", fields: [counselorId], references: [id], onDelete: Cascade)
+  student     Profile @relation("StudentReceivedNotes", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("TeacherNote")
+}

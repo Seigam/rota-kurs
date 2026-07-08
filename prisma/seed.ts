@@ -1,11 +1,13 @@
 import 'dotenv/config';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role, FamilyRelation, EntryType, LifeDomain } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || 'file:./dev.db',
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy',
 });
+const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({
   adapter,
@@ -14,6 +16,13 @@ const prisma = new PrismaClient({
 
 async function main() {
   console.log('🌱 Veritabanı tohumlama (seed) işlemi başlatılıyor...');
+
+  // Eğer veritabanı doluysa ve FORCE_SEED istenmemişse seed işlemini atla (Vercel deploy'larda verileri koru)
+  const userCount = await prisma.user.count();
+  if (userCount > 0 && process.env.FORCE_SEED !== 'true') {
+    console.log('✅ Veritabanında zaten veriler mevcut. Seed işlemi atlanıyor. (Yeniden kurmak için FORCE_SEED=true yapabilirsiniz)');
+    return;
+  }
 
   // 1. Temel Verileri Temizle
   await prisma.testAnswer.deleteMany();

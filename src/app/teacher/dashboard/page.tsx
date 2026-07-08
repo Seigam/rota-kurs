@@ -22,7 +22,7 @@ export default async function TeacherDashboardPage() {
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Öğretmen / Danışman <span className="text-gradient">Yönetim Paneli</span>
+              Öğretmen / Danısman <span className="text-gradient">Yönetim Paneli</span>
             </h1>
             <p className="text-sm text-gray-400 mt-1">
               Sınıfınızdaki öğrencilerin kariyer yönelimlerini, test tamamlama oranlarını ve kişiselleştirilmiş raporlarını buradan izleyebilirsiniz.

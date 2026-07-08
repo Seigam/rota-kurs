@@ -28,6 +28,7 @@ export async function GET() {
       include: {
         personalityResult: true,
         valueRankings: { take: 1 },
+        lifeDomainEntries: { take: 1 },
       },
     });
 
@@ -38,6 +39,11 @@ export async function GET() {
     // Değer sıralaması tamamlanmamışsa
     if (!profile.valueRankings || profile.valueRankings.length === 0) {
       return NextResponse.json({ redirectTo: '/student/values' });
+    }
+
+    // Hedefler & Planlar matrisi tamamlanmamışsa
+    if (!profile.lifeDomainEntries || profile.lifeDomainEntries.length === 0) {
+      return NextResponse.json({ redirectTo: '/student/domains' });
     }
 
     // Kişilik testi tamamlanmamışsa

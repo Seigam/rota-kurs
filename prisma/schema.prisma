@@ -117,6 +117,7 @@ model Profile {
   testAnswers      TestAnswer[]
   lifeDomainEntries LifeDomainEntry[]
   domainPlans      DomainPlan[]
+  goalPlanItems    GoalPlanItem[]
   valueRankings    ValueRanking[]
   profileRankings  ValueRanking[]  @relation("ProfileValueRankings")
   favorites        FavoriteProgram[]
@@ -289,6 +290,21 @@ model DomainPlan {
   updatedAt   DateTime   @updatedAt
 
   student     Profile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model GoalPlanItem {
+  id           String    @id @default(uuid())
+  studentId    String
+  domain       String
+  wishText     String
+  selectedGoal String
+  planSteps    String    // JSON string array of steps: [{ id: "1", text: "...", isCompleted: false }]
+  isCompleted  Boolean   @default(false)
+  xpAwarded    Int       @default(100)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  student      Profile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model ValueItem {

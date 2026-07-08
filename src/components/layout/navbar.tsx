@@ -80,6 +80,14 @@ export function Navbar() {
                       Öğrenci Paneli
                     </Link>
                     <Link
+                      href="/student/goals"
+                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${
+                        pathname.startsWith('/student/goals') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
+                      }`}
+                    >
+                      Hedef Takibi
+                    </Link>
+                    <Link
                       href="/student/onboarding"
                       className={`text-sm font-medium transition-colors hover:text-indigo-400 ${
                         pathname.startsWith('/student/onboarding') ? 'text-indigo-400 font-semibold' : 'text-gray-300'

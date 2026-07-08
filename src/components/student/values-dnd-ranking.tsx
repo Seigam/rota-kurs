@@ -86,9 +86,9 @@ export function ValuesDndRanking() {
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(data.message || 'Değer sıralamanız kaydedildi! Kişilik testine yönlendiriliyorsunuz...');
+        setSuccessMsg(data.message || 'Değer sıralamanız kaydedildi! Planlar ve Hedefler matrisine yönlendiriliyorsunuz...');
         setTimeout(() => {
-          router.push('/rpg/test');
+          router.push('/student/domains');
           router.refresh();
         }, 1500);
       } else {

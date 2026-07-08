@@ -145,24 +145,33 @@ export default async function StudentDashboardPage() {
               </div>
               <div>
                 <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider mb-2">
-                  6 Yaşam Alanı × 3 Sütun
+                  Yapay Zeka Destekli SMART Hedefler
                 </span>
                 <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
-                  Planlar & Hedefler Matrisi
+                  Planlar & Hedefler Sihirbazı
                 </h3>
                 <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  Kariyer, akademi, sağlık ve sosyal yaşam alanlarında somut planlarınızı, hedeflerinizi ve hayallerinizi yapılandırın.
+                  İsteklerinizi yazın, yapay zekanın önerdiği hedefleri seçip adım adım eylem planlarınızı oluşturun.
                 </p>
               </div>
             </div>
 
-            <Link
-              href="/student/domains"
-              className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm text-center flex items-center justify-center gap-2 transition-all relative z-10"
-            >
-              <span>Matrisi Doldur (+30 XP)</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            <div className="flex flex-col gap-2 relative z-10">
+              <Link
+                href="/student/domains"
+                className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs text-center flex items-center justify-center gap-2 transition-all"
+              >
+                <span>AI ile Hedef Oluştur (+100 XP)</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/student/goals"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 font-bold text-xs text-center flex items-center justify-center gap-2 transition-all"
+              >
+                <span>Canlı Hedef Takibi (+XP Kazan)</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
           </div>
 
           {/* Card 3: Kariyer & Sertifika Programları */}

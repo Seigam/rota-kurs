@@ -24,10 +24,12 @@ export default async function HomePage() {
         include: {
           personalityResult: true,
           valueRankings: { take: 1 },
+          lifeDomainEntries: { take: 1 },
         },
       });
       if (!profile || !profile.completedOnboarding) redirect('/student/onboarding');
       if (!profile.valueRankings || profile.valueRankings.length === 0) redirect('/student/values');
+      if (!profile.lifeDomainEntries || profile.lifeDomainEntries.length === 0) redirect('/student/domains');
       if (!profile.personalityResult) redirect('/rpg/test');
       redirect('/student/dashboard');
     }

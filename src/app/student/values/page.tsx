@@ -47,7 +47,7 @@ export default async function StudentValuesPage() {
               <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
                 <span className="text-xs font-black text-gray-400">3</span>
               </div>
-              <span className="text-xs font-semibold text-gray-400">Kişilik Testi</span>
+              <span className="text-xs font-semibold text-gray-400">Hedef & Plan Matrisi</span>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-600 flex-shrink-0 opacity-40" />
             {/* Adım 4 — Bekliyor */}
@@ -55,13 +55,21 @@ export default async function StudentValuesPage() {
               <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
                 <span className="text-xs font-black text-gray-400">4</span>
               </div>
-              <span className="text-xs font-semibold text-gray-400">Test Sonuçları</span>
+              <span className="text-xs font-semibold text-gray-400">Kişilik Testi</span>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-600 flex-shrink-0 opacity-40" />
             {/* Adım 5 — Bekliyor */}
             <div className="flex items-center gap-2 flex-shrink-0 opacity-40">
               <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
                 <span className="text-xs font-black text-gray-400">5</span>
+              </div>
+              <span className="text-xs font-semibold text-gray-400">Test Sonuçları</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-600 flex-shrink-0 opacity-40" />
+            {/* Adım 6 — Bekliyor */}
+            <div className="flex items-center gap-2 flex-shrink-0 opacity-40">
+              <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                <span className="text-xs font-black text-gray-400">6</span>
               </div>
               <span className="text-xs font-semibold text-gray-400">Önerilen Kurslar</span>
             </div>
@@ -72,14 +80,14 @@ export default async function StudentValuesPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
-              Adım 2 / 5 — İçsel Pusula & Değerler Haritası
+              Adım 2 / 6 — İçsel Pusula & Değerler Haritası
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Temel Değerler <span className="text-gradient">Sıralama Çalışması</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-2xl mt-1">
-            Bir kariyer veya iş ortamında sizin için en vazgeçilmez olan nedir? Aşağıdaki 12 değeri sürükleyerek kendi öncelik sıranıza göre dizin. Kaydettikten sonra kişilik testine geçeceksiniz.
+            Bir kariyer veya iş ortamında sizin için en vazgeçilmez olan nedir? Aşağıdaki 12 değeri sürükleyerek kendi öncelik sıranıza göre dizin. Kaydettikten sonra Planlar ve Hedefler matrisine geçeceksiniz.
           </p>
         </div>
 

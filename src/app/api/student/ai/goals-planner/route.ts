@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,14 +18,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'İstek veya hedef metni gereklidir' }, { status: 400 });
     }
 
+    const groqApiKey = process.env.GROQ_API_KEY;
+
     // 1. Eğer selectedGoal gönderildiyse bu hedef için adım adım Eylem Planı (Plan Steps) üret
     if (selectedGoal) {
-      const steps = generateActionSteps(domain, selectedGoal);
+      if (groqApiKey) {
+        try {
+          const aiSteps = await generateActionStepsWithGroq(groqApiKey, domain, selectedGoal);
+          if (aiSteps && aiSteps.length > 0) {
+            return NextResponse.json({ steps: aiSteps });
+          }
+        } catch (groqErr) {
+          console.error('Groq Action Steps Error, fallback to rule engine:', groqErr);
+        }
+      }
+      const steps = generateActionStepsFallback(domain, selectedGoal);
       return NextResponse.json({ steps });
     }
 
     // 2. Eğer sadece wishText gönderildiyse bu istek için 3 adet SMART Hedef (Goal Options) üret
-    const goals = generateSmartGoals(domain, wishText);
+    if (groqApiKey) {
+      try {
+        const aiGoals = await generateSmartGoalsWithGroq(groqApiKey, domain, wishText);
+        if (aiGoals && aiGoals.length > 0) {
+          return NextResponse.json({ goals: aiGoals });
+        }
+      } catch (groqErr) {
+        console.error('Groq SMART Goals Error, fallback to rule engine:', groqErr);
+      }
+    }
+
+    const goals = generateSmartGoalsFallback(domain, wishText);
     return NextResponse.json({ goals });
   } catch (err) {
     console.error('AI Goals Planner error:', err);
@@ -30,7 +56,96 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateSmartGoals(domain: string, wish: string): string[] {
+async function generateSmartGoalsWithGroq(apiKey: string, domain: string, wishText: string): Promise<string[]> {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.7,
+      max_tokens: 600,
+      messages: [
+        {
+          role: 'system',
+          content: 'Sen uzman bir lise rehberlik ve kariyer koçusun. Öğrencilerin genel hayallerini ve isteklerini SMART (Spesifik, Ölçülebilir, Ulaşılabilir, İlgili, Zaman Sınırlı) hedeflere dönüştürürsün.\nSADECE geçerli bir JSON dizisi (JSON array string[]) döndüreceksin. Kesinlikle markdown kodu veya açıklama yazma.\nÖrnek format:\n[\n  "Önümüzdeki 3 ay boyunca haftada 5 saat çalışarak hedef alanda 2 pratik proje tamamlamak.",\n  "Bu dönem sonuna kadar deneme sınavlarında matematik netlerini 5 net artırmak.",\n  "6 ay içerisinde hedef yabancı dilde B2 seviyesine ulaşarak 3 kitap okumak."\n]',
+        },
+        {
+          role: 'user',
+          content: `Öğrencinin seçtiği yaşam alanı: ${domain}\nÖğrencinin hayali/isteği: "${wishText}"\n\nBu öğrenci için tam olarak 3 adet SMART hedef seçeneği üret. Türkçe olarak, lise öğrencisinin seviyesine uygun, motivasyon sağlayıcı, zaman periyodu ve ölçülebilir kriter barındıran 3 farklı hedef cümlesi olsun.\nSADECE JSON dizisini ["hedef 1", "hedef 2", "hedef 3"] biçiminde döndür.`,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Groq API returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+
+  const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+  const parsed = JSON.parse(cleaned);
+
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    return parsed.map((item) => String(item));
+  }
+
+  throw new Error('Groq did not return a valid JSON array');
+}
+
+async function generateActionStepsWithGroq(
+  apiKey: string,
+  domain: string,
+  selectedGoal: string
+): Promise<Array<{ id: string; text: string }>> {
+  const response = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.7,
+      max_tokens: 600,
+      messages: [
+        {
+          role: 'system',
+          content: 'Sen uzman bir lise rehberlik ve kariyer koçusun. Öğrencinin seçtiği SMART hedefe ulaşması için 4 adımlı somut ve uygulanabilir bir eylem planı oluşturursun.\nSADECE geçerli bir JSON dizisi döndüreceksin. Kesinlikle markdown kodu veya açıklama yazma.\nÖrnek format:\n[\n  { "id": "step_1", "text": "Ön Hazırlık: Kaynakları ve haftalık takvimi oluşturmak." },\n  { "id": "step_2", "text": "İlk Adım (1. Hafta): Haftada 3 gün odaklı çalışma rutinine başlamak." },\n  { "id": "step_3", "text": "Gelişim ve Uygulama (2.-4. Hafta): İlerlemeyi kaydetmek ve eksik konuları gidermek." },\n  { "id": "step_4", "text": "Değerlendirme ve Tamamlama: Hedef çıktısını tamamlayıp rehber öğretmene sunmak." }\n]',
+        },
+        {
+          role: 'user',
+          content: `Yaşam alanı: ${domain}\nSeçilen SMART Hedef: "${selectedGoal}"\n\nBu hedefe ulaşmak için tam olarak 4 adımlı kronolojik eylem planı oluştur. Her adım lise öğrencisinin uygulayabileceği somut bir görev olsun.\nSADECE JSON dizisini döndür.`,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Groq API returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+
+  const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+  const parsed = JSON.parse(cleaned);
+
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    return parsed.map((item, idx) => ({
+      id: item.id || `step_${idx + 1}`,
+      text: String(item.text),
+    }));
+  }
+
+  throw new Error('Groq did not return valid steps JSON array');
+}
+
+function generateSmartGoalsFallback(domain: string, wish: string): string[] {
   const w = wish.toLowerCase();
 
   if (domain === 'CAREER' || domain === 'ACADEMIC') {
@@ -101,7 +216,7 @@ function generateSmartGoals(domain: string, wish: string): string[] {
   ];
 }
 
-function generateActionSteps(domain: string, goal: string): Array<{ id: string; text: string }> {
+function generateActionStepsFallback(domain: string, goal: string): Array<{ id: string; text: string }> {
   return [
     {
       id: 'step_1',

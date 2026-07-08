@@ -86,8 +86,11 @@ export function ValuesDndRanking() {
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(data.message || 'Sıralama başarıyla kaydedildi!');
-        router.refresh();
+        setSuccessMsg(data.message || 'Değer sıralamanız kaydedildi! Kişilik testine yönlendiriliyorsunuz...');
+        setTimeout(() => {
+          router.push('/rpg/test');
+          router.refresh();
+        }, 1500);
       } else {
         setErrorMsg(data.error || 'Kaydedilirken hata oluştu.');
       }

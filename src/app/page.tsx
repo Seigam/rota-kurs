@@ -7,8 +7,9 @@ import { Role } from '@prisma/client';
 import { 
   Compass, Sparkles, ArrowRight, Zap, 
   Brain, Target, Users, Star, Rocket,
-  ChevronRight, HeartHandshake, Layers
+  ChevronRight, HeartHandshake, Layers, ChevronDown
 } from 'lucide-react';
+import { LandingLoginSection } from '@/components/landing/landing-login-section';
 
 export default async function HomePage() {
   // If already logged in, smart-redirect to correct page
@@ -20,9 +21,13 @@ export default async function HomePage() {
     if (role === Role.STUDENT) {
       const profile = await prisma.profile.findUnique({
         where: { userId: id },
-        include: { personalityResult: true },
+        include: {
+          personalityResult: true,
+          valueRankings: { take: 1 },
+        },
       });
       if (!profile || !profile.completedOnboarding) redirect('/student/onboarding');
+      if (!profile.valueRankings || profile.valueRankings.length === 0) redirect('/student/values');
       if (!profile.personalityResult) redirect('/rpg/test');
       redirect('/student/dashboard');
     }
@@ -55,14 +60,15 @@ export default async function HomePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <Link
-            href="/login"
+          {/* Scroll to login section */}
+          <a
+            href="#giris"
             className="w-full sm:w-auto glow-button px-8 py-4 rounded-2xl text-white font-extrabold text-base tracking-wide shadow-2xl flex items-center justify-center gap-3 group"
           >
             <Compass className="w-5 h-5 text-amber-300 group-hover:rotate-45 transition-transform" />
-            <span>Hemen Testi Başlat / Giriş Yap</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
+            <span>Hemen Başlat / Giriş Yap</span>
+            <ChevronDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+          </a>
 
           <Link
             href="/register"
@@ -81,11 +87,11 @@ export default async function HomePage() {
             </div>
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Tek Tıkla Hızlı Deneme İsteği</span>
+                <span>Tek Tıkla Hızlı Deneme</span>
                 <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-extrabold uppercase">Hazır Seed</span>
               </h4>
               <p className="text-xs text-gray-300 leading-relaxed">
-                Hesap oluşturmadan sistemi denemek mi istiyorsunuz? <Link href="/login" className="text-indigo-400 font-bold hover:underline">Giriş Ekranına</Link> giderek **Ali Yılmaz (Öğrenci)**, **Ayşe Rehber (Öğretmen)** veya **Yönetici** butonlarına tek tıkla basarak anında oturum açabilirsiniz!
+                Hesap oluşturmadan sistemi denemek mi istiyorsunuz? Aşağıdaki <a href="#giris" className="text-indigo-400 font-bold hover:underline">Giriş Bölümüne</a> giderek “Ali Yılmaz (Öğrenci)”, “Ayşe Rehber (Öğretmen)” veya “Yönetici” butonlarına tek tıkla basarak anında oturum açabilirsiniz!
               </p>
             </div>
           </div>
@@ -260,12 +266,12 @@ export default async function HomePage() {
             İster öğrenci olarak kişilik tipini keşfet, ister rehber öğretmen olarak öğrencilerinin gelişimini 360 derece takip et.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <Link
-              href="/login"
+            <a
+              href="#giris"
               className="w-full sm:w-auto glow-button px-8 py-3.5 rounded-xl text-white font-extrabold text-sm shadow-xl"
             >
               Hemen Giriş Yap
-            </Link>
+            </a>
             <Link
               href="/register"
               className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm transition-all"
@@ -273,6 +279,35 @@ export default async function HomePage() {
               Ücretsiz Kayıt Ol
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* GİRİŞ BÖLÜMÜ — #giris anchor                               */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <section id="giris" className="relative z-10 py-20 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+        {/* Glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-indigo-600/20 via-purple-600/15 to-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto relative z-10 space-y-10">
+          {/* Başlık */}
+          <div className="text-center space-y-3">
+            <span className="text-xs font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+              GİRİŞ YAP
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Kariyerin İçin{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400">
+                ROTA'yı Çiz
+              </span>
+            </h2>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
+              Kim olduğunu seç ve hemen başla. Öğretmen mi, öğrenci mi?
+            </p>
+          </div>
+
+          {/* Giriş formu (Client Component) */}
+          <LandingLoginSection />
         </div>
       </section>
     </div>

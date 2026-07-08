@@ -94,9 +94,9 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
         setError(data.error || 'Bilgiler kaydedilirken hata oluştu.');
         setLoading(false);
       } else {
-        setSuccessMsg(data.message || 'Profil başarıyla kaydedildi! Kişilik testi başlatılıyor...');
+        setSuccessMsg(data.message || 'Profil başarıyla kaydedildi! Değerler sıralamasına yönlendiriliyorsunuz...');
         setTimeout(() => {
-          router.push('/rpg/test');
+          router.push('/student/values');
           router.refresh();
         }, 1500);
       }

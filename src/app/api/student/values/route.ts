@@ -30,6 +30,9 @@ export async function GET() {
         valueRankings: {
           orderBy: { rankOrder: 'asc' },
         },
+        profileRankings: {
+          orderBy: { rankOrder: 'asc' },
+        },
       },
     });
 
@@ -37,7 +40,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Önce öğrenci profili oluşturulmalıdır.' }, { status: 400 });
     }
 
-    let valuesList = profile.valueRankings.map((v) => ({
+    const rawRankings =
+      profile.valueRankings && profile.valueRankings.length > 0
+        ? profile.valueRankings
+        : profile.profileRankings || [];
+
+    let valuesList = rawRankings.map((v) => ({
       id: v.id,
       valueName: v.valueName,
       rankOrder: v.rankOrder,
@@ -87,13 +95,16 @@ export async function POST(req: Request) {
 
     // Eski sıralamayı sil
     await prisma.valueRanking.deleteMany({
-      where: { profileId: profile.id },
+      where: {
+        OR: [{ profileId: profile.id }, { studentId: profile.id }],
+      },
     });
 
     // Yeni sıralamayı kaydet
     await prisma.valueRanking.createMany({
       data: rankings.map((r: any, idx: number) => ({
         profileId: profile.id,
+        studentId: profile.id,
         valueName: r.valueName,
         rankOrder: idx + 1,
       })),

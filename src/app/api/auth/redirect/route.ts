@@ -28,6 +28,7 @@ export async function GET() {
       include: {
         personalityResult: true,
         valueRankings: { take: 1 },
+        profileRankings: { take: 1 },
         lifeDomainEntries: { take: 1 },
       },
     });
@@ -37,7 +38,11 @@ export async function GET() {
     }
 
     // Değer sıralaması tamamlanmamışsa
-    if (!profile.valueRankings || profile.valueRankings.length === 0) {
+    const hasValues =
+      (profile.valueRankings && profile.valueRankings.length > 0) ||
+      (profile.profileRankings && profile.profileRankings.length > 0);
+
+    if (!hasValues) {
       return NextResponse.json({ redirectTo: '/student/values' });
     }
 

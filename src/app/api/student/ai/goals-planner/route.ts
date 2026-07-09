@@ -85,7 +85,7 @@ async function generateSmartGoalsWithGroq(apiKey: string, domain: string, wishTe
   }
 
   const data = await response.json();
-  const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+  const rawContent = String(data?.choices?.[0]?.message?.content || '').trim();
 
   const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
   const parsed = JSON.parse(cleaned);
@@ -130,7 +130,7 @@ async function generateActionStepsWithGroq(
   }
 
   const data = await response.json();
-  const rawContent = data.choices?.[0]?.message?.content?.trim() || '';
+  const rawContent = String(data?.choices?.[0]?.message?.content || '').trim();
 
   const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
   const parsed = JSON.parse(cleaned);

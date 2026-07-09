@@ -123,7 +123,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error('POST goals error:', err);
-    return NextResponse.json({ error: 'Hedef kaydedilirken hata oluştu' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Hedef kaydedilirken hata oluştu',
+        details: err instanceof Error ? err.message : String(err),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -142,7 +148,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Profil bulunamadı' }, { status: 404 });
     }
 
-    const { action, goalItemId, stepId } = await request.json();
+    const requestBody = await request.json();
+    const { action, goalItemId, stepId } = requestBody;
 
     if (action === 'DELETE' && goalItemId) {
       await prisma.goalPlanItem.delete({
@@ -206,6 +213,135 @@ export async function PATCH(request: NextRequest) {
         xpDelta,
         experiencePoints: newXp,
         currentLevel: newLevel,
+      });
+    }
+
+    if (action === 'UPDATE_STEP_STATUS' && goalItemId && stepId && requestBody.newStatus) {
+      const { newStatus } = requestBody;
+      const goalItem = await prisma.goalPlanItem.findUnique({
+        where: { id: goalItemId },
+      });
+
+      if (!goalItem) {
+        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
+      }
+
+      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(
+        goalItem.planSteps || '[]'
+      );
+      let xpDelta = 0;
+
+      const updatedSteps = steps.map((s) => {
+        if (s.id === stepId) {
+          const wasDone = s.status === 'DONE' || s.isCompleted === true;
+          const willBeDone = newStatus === 'DONE';
+          if (!wasDone && willBeDone) {
+            xpDelta += 25;
+          } else if (wasDone && !willBeDone) {
+            xpDelta -= 25;
+          }
+          return {
+            ...s,
+            status: newStatus,
+            isCompleted: willBeDone,
+          };
+        }
+        return s;
+      });
+
+      const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.status === 'DONE' || s.isCompleted);
+
+      if (allCompleted && !goalItem.isCompleted) {
+        xpDelta += 100;
+      }
+
+      const newXp = Math.max(0, (profile.experiencePoints || 0) + xpDelta);
+      const newLevel = Math.floor(newXp / 200) + 1;
+
+      await prisma.$transaction([
+        prisma.goalPlanItem.update({
+          where: { id: goalItemId },
+          data: {
+            planSteps: JSON.stringify(updatedSteps),
+            isCompleted: allCompleted,
+          },
+        }),
+        prisma.profile.update({
+          where: { id: profile.id },
+          data: {
+            experiencePoints: newXp,
+            currentLevel: newLevel,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        steps: updatedSteps,
+        isCompleted: allCompleted,
+        experiencePoints: newXp,
+        currentLevel: newLevel,
+        xpDelta,
+      });
+    }
+
+    if (action === 'ADD_STEP' && goalItemId && requestBody.stepText) {
+      const { stepText, status = 'TODO' } = requestBody;
+      const goalItem = await prisma.goalPlanItem.findUnique({
+        where: { id: goalItemId },
+      });
+
+      if (!goalItem) {
+        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
+      }
+
+      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(
+        goalItem.planSteps || '[]'
+      );
+      let xpDelta = status === 'DONE' ? 25 : 0;
+
+      const newStepItem = {
+        id: `step_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        text: stepText.trim(),
+        status: status,
+        isCompleted: status === 'DONE',
+      };
+
+      const updatedSteps = [...steps, newStepItem];
+      const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.status === 'DONE' || s.isCompleted);
+
+      if (allCompleted && !goalItem.isCompleted) {
+        xpDelta += 100;
+      }
+
+      const newXp = Math.max(0, (profile.experiencePoints || 0) + xpDelta);
+      const newLevel = Math.floor(newXp / 200) + 1;
+
+      await prisma.$transaction([
+        prisma.goalPlanItem.update({
+          where: { id: goalItemId },
+          data: {
+            planSteps: JSON.stringify(updatedSteps),
+            isCompleted: allCompleted,
+          },
+        }),
+        prisma.profile.update({
+          where: { id: profile.id },
+          data: {
+            experiencePoints: newXp,
+            currentLevel: newLevel,
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        steps: updatedSteps,
+        newStep: newStepItem,
+        isCompleted: allCompleted,
+        experiencePoints: newXp,
+        currentLevel: newLevel,
+        xpDelta,
       });
     }
 

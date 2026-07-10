@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import {
   Target, Award, CheckCircle2, Circle, Sparkles, Trash2,
   Briefcase, BookOpen, Users, Heart, Coins, Compass, Trophy,
-  Plus, GripVertical, Clock, PlayCircle, CheckCircle, ArrowRight, X
+  Plus, GripVertical, Clock, PlayCircle, CheckCircle, ArrowRight, X,
+  ExternalLink, GraduationCap, RefreshCw
 } from 'lucide-react';
 import {
   DndContext,
@@ -548,6 +549,9 @@ export function GoalsTrackerClient() {
           </DragOverlay>
         </DndContext>
       )}
+
+      {/* Yapılacaklar & Plan Adımlarınız İçin Akıllı Kurs ve Kaynak Önerileri */}
+      <CourseRecommendationsSection activeDomain={activeDomain} domainGoals={domainGoals} />
     </div>
   );
 }
@@ -662,6 +666,188 @@ function StepCardPreview({
           <GripVertical className="w-4 h-4" />
         </div>
       </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Yapılacaklar & Plan Adımları İçin Akıllı Kurs ve Kaynak Önerileri Bileşeni
+// -----------------------------------------------------------------------------
+interface CourseRecommendation {
+  id: string;
+  title: string;
+  platform: string;
+  level: string;
+  duration: string;
+  relatedStep: string;
+  reason: string;
+  url: string;
+}
+
+function CourseRecommendationsSection({
+  activeDomain,
+  domainGoals,
+}: {
+  activeDomain: string;
+  domainGoals: GoalPlanData[];
+}) {
+  const [recs, setRecs] = useState<CourseRecommendation[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const domainInfo = DOMAINS_LIST.find((d) => d.id === activeDomain);
+
+  const inProgressSteps: string[] = [];
+  const todoSteps: string[] = [];
+
+  domainGoals.forEach((goal) => {
+    (goal.planSteps || []).forEach((step) => {
+      const status = step.status || (step.isCompleted ? 'DONE' : 'TODO');
+      if (status === 'IN_PROGRESS') inProgressSteps.push(step.text);
+      else if (status === 'TODO') todoSteps.push(step.text);
+    });
+  });
+
+  const fetchRecommendations = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/student/ai/course-recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: activeDomain,
+          domainLabel: domainInfo?.label || activeDomain,
+          inProgressSteps,
+          todoSteps,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.recommendations) {
+        setRecs(data.recommendations);
+      }
+    } catch (err) {
+      console.error('Kurs önerileri alınamadı:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [activeDomain, domainGoals.length]);
+
+  return (
+    <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden mt-10">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Başlık ve AI Yenileme Butonu */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-indigo-500/40 flex items-center justify-center text-indigo-300 shrink-0">
+            <GraduationCap className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+                Yapılacaklar & Planlarına Özel
+              </span>
+              <span className="text-[11px] font-medium text-gray-400">
+                {domainInfo?.label}
+              </span>
+            </div>
+            <h3 className="text-xl font-extrabold text-white mt-1">
+              Akıllı Kurs & Eğitim Kaynağı Önerileri
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Kanban panonuzdaki &apos;Yapılacaklar&apos; sütununuzu hızlandıracak seçilmiş ücretsiz ve sertifikalı eğitimler
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={fetchRecommendations}
+          disabled={loading}
+          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 transition-all shrink-0 disabled:opacity-60"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>{loading ? 'AI Önerileri Hazırlanıyor...' : 'AI ile Öneri Yenile'}</span>
+        </button>
+      </div>
+
+      {/* Öneriler Listesi Grid */}
+      {loading ? (
+        <div className="py-16 flex flex-col items-center justify-center space-y-3">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+            <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
+          </div>
+          <p className="text-xs text-gray-400 animate-pulse">
+            Yapılacaklar listeniz analiz ediliyor ve size en uygun kurslar seçiliyor...
+          </p>
+        </div>
+      ) : recs.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-xs text-gray-500">Bu alan için henüz bir kurs önerisi bulunamadı.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          {recs.map((rec) => (
+            <div
+              key={rec.id}
+              className="p-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-4 group"
+            >
+              <div className="space-y-3">
+                {/* Platform ve Seviye Etiketleri */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    {rec.platform}
+                  </span>
+                  <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    {rec.level}
+                  </span>
+                </div>
+
+                {/* Kurs Başlığı */}
+                <h4 className="text-sm font-extrabold text-white leading-snug group-hover:text-indigo-200 transition-colors">
+                  {rec.title}
+                </h4>
+
+                {/* İlişkili Görev */}
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+                  <Target className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-300 block">İlişkili Yapılacak Görev:</span>
+                    <p className="text-[11px] text-gray-200 font-medium line-clamp-2 mt-0.5">
+                      {rec.relatedStep}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Açıklama */}
+                <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">
+                  {rec.reason}
+                </p>
+              </div>
+
+              {/* Alt Bilgi ve Kursa Git Butonu */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="truncate max-w-[120px]">{rec.duration}</span>
+                </div>
+
+                <a
+                  href={rec.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                >
+                  <span>İncele</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

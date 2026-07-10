@@ -285,6 +285,49 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    if (action === 'UPDATE_STEP_DATE' && goalItemId && stepId) {
+      const { dueDate, startDate, timeRange, startTime, endTime, isAllDay, color } = requestBody;
+      const goalItem = await prisma.goalPlanItem.findUnique({
+        where: { id: goalItemId },
+      });
+
+      if (!goalItem) {
+        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
+      }
+
+      const steps: Array<any> = JSON.parse(
+        goalItem.planSteps || '[]'
+      );
+
+      const updatedSteps = steps.map((s) => {
+        if (s.id === stepId) {
+          return {
+            ...s,
+            dueDate: dueDate !== undefined ? (dueDate || null) : s.dueDate,
+            startDate: startDate !== undefined ? (startDate || null) : s.startDate,
+            timeRange: timeRange !== undefined ? (timeRange || null) : s.timeRange,
+            startTime: startTime !== undefined ? (startTime || null) : s.startTime,
+            endTime: endTime !== undefined ? (endTime || null) : s.endTime,
+            isAllDay: isAllDay !== undefined ? isAllDay : s.isAllDay,
+            color: color !== undefined ? color : s.color,
+          };
+        }
+        return s;
+      });
+
+      await prisma.goalPlanItem.update({
+        where: { id: goalItemId },
+        data: {
+          planSteps: JSON.stringify(updatedSteps),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        steps: updatedSteps,
+      });
+    }
+
     if (action === 'ADD_STEP' && goalItemId && requestBody.stepText) {
       const { stepText, status = 'TODO' } = requestBody;
       const goalItem = await prisma.goalPlanItem.findUnique({

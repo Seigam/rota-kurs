@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Target, Award, CheckCircle2, Circle, Sparkles, Trash2,
   Briefcase, BookOpen, Users, Heart, Coins, Compass, Trophy,
   Plus, GripVertical, Clock, PlayCircle, CheckCircle, ArrowRight, X,
-  ExternalLink, GraduationCap, RefreshCw
+  ExternalLink, GraduationCap, RefreshCw,
+  Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame, LayoutGrid, Check
 } from 'lucide-react';
 import {
   DndContext,
@@ -25,6 +26,13 @@ interface PlanStepItem {
   text: string;
   isCompleted?: boolean;
   status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  dueDate?: string | null;
+  startDate?: string | null;
+  timeRange?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  isAllDay?: boolean;
+  color?: string;
 }
 
 interface GoalPlanData {
@@ -60,6 +68,95 @@ export function GoalsTrackerClient() {
   const [loading, setLoading] = useState(true);
   const [activeDomain, setActiveDomain] = useState<string>('CAREER');
   const [xpCelebration, setXpCelebration] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'KANBAN' | 'CALENDAR'>('KANBAN');
+
+  const handleUpdateStepDate = async (
+    goalId: string,
+    stepId: string,
+    dueDate: string | null,
+    startDate?: string | null,
+    timeRange?: string | null,
+    startTime?: string | null,
+    endTime?: string | null,
+    isAllDay?: boolean,
+    color?: string
+  ) => {
+    // 1. OPTIMISTIC UI UPDATE: Sıfır gecikme ile arayüzü anında güncelle
+    setGoals((prev) =>
+      prev.map((g) => {
+        if (g.id !== goalId) return g;
+        return {
+          ...g,
+          planSteps: (g.planSteps || []).map((s) => {
+            if (s.id !== stepId) return s;
+            return {
+              ...s,
+              dueDate: dueDate !== undefined ? dueDate : s.dueDate,
+              startDate: startDate !== undefined ? startDate : s.startDate,
+              timeRange: timeRange !== undefined ? timeRange : s.timeRange,
+              startTime: startTime !== undefined ? startTime : s.startTime,
+              endTime: endTime !== undefined ? endTime : s.endTime,
+              isAllDay: isAllDay !== undefined ? isAllDay : s.isAllDay,
+              color: color !== undefined ? color : s.color,
+            };
+          }),
+        };
+      })
+    );
+
+    // 2. Arka planda sunucuya kaydet
+    try {
+      await fetch('/api/student/goals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_STEP_DATE',
+          goalItemId: goalId,
+          stepId,
+          dueDate,
+          startDate,
+          timeRange,
+          startTime,
+          endTime,
+          isAllDay,
+          color,
+        }),
+      });
+    } catch (err) {
+      console.error('Tarih güncellenemedi:', err);
+    }
+  };
+
+  const handleToggleStep = async (goalId: string, stepId: string) => {
+    try {
+      const res = await fetch('/api/student/goals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TOGGLE_STEP', goalItemId: goalId, stepId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGoals((prev) =>
+          prev.map((g) => {
+            if (g.id !== goalId) return g;
+            return {
+              ...g,
+              planSteps: data.steps,
+              isCompleted: data.isCompleted,
+            };
+          })
+        );
+        if (data.xpDelta > 0) {
+          setXpCelebration(`+${data.xpDelta} XP Kazandın! 🎉`);
+          setTimeout(() => setXpCelebration(null), 2500);
+          setXp(data.experiencePoints);
+          setLevel(data.currentLevel);
+        }
+      }
+    } catch (err) {
+      console.error('Adım durumu değiştirilemedi:', err);
+    }
+  };
 
   // Yeni görev ekleme kutuları state
   const [addingCol, setAddingCol] = useState<string | null>(null);
@@ -332,6 +429,42 @@ export function GoalsTrackerClient() {
         </div>
       </div>
 
+      {/* Görünüm Değiştirici: Kanban vs Takvim */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-white/5 border border-white/10">
+        <div>
+          <h3 className="text-sm font-extrabold text-white">Çalışma Panosu Görünümü</h3>
+          <p className="text-xs text-gray-400">
+            Adımlarınızı Sürükle-Bırak sütunlarıyla veya Takvim tarih çizelgesiyle takip edin
+          </p>
+        </div>
+
+        <div className="flex items-center p-1.5 rounded-2xl bg-black/40 border border-white/10 shrink-0">
+          <button
+            onClick={() => setViewMode('KANBAN')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              viewMode === 'KANBAN'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Kanban Panosu</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('CALENDAR')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              viewMode === 'CALENDAR'
+                ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-600/30'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Etkileşimli Takvim</span>
+          </button>
+        </div>
+      </div>
+
       {/* Domain Tabs */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -403,8 +536,14 @@ export function GoalsTrackerClient() {
         </div>
       )}
 
-      {/* KANBAN BOARD */}
-      {domainGoals.length === 0 ? (
+      {/* KANBAN BOARD veya TAKVİM GÖRÜNÜMÜ */}
+      {viewMode === 'CALENDAR' ? (
+        <GoalsCalendarView
+          goals={goals}
+          onUpdateStepDate={handleUpdateStepDate}
+          onToggleStep={handleToggleStep}
+        />
+      ) : domainGoals.length === 0 ? (
         <div className="glass-panel p-12 rounded-3xl border border-white/10 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-400">
             <Target className="w-7 h-7" />
@@ -848,6 +987,790 @@ function CourseRecommendationsSection({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// SEÇENEK A: HEDEF TAKİBİ SAYFASI ETKİLEŞİMLİ & OYUNLAŞTIRILMIŞ TAKVİM GÖRÜNÜMÜ
+// -----------------------------------------------------------------------------
+function GoalsCalendarView({
+  goals,
+  onUpdateStepDate,
+  onToggleStep,
+}: {
+  goals: GoalPlanData[];
+  onUpdateStepDate: (
+    goalId: string,
+    stepId: string,
+    dueDate: string | null,
+    startDate?: string | null,
+    timeRange?: string | null,
+    startTime?: string | null,
+    endTime?: string | null,
+    isAllDay?: boolean,
+    color?: string
+  ) => Promise<void>;
+  onToggleStep: (goalId: string, stepId: string) => Promise<void>;
+}) {
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [viewMode, setViewMode] = useState<'MONTH' | 'WEEK'>('MONTH');
+  const [trayTab, setTrayTab] = useState<'UNSCHEDULED' | 'SELECTED_DAY'>('UNSCHEDULED');
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [selectedDateStr, setSelectedDateStr] = useState(todayStr);
+
+  // Google Takvim Etkinlik Düzenleme Modalı için state
+  const [gcalModalStep, setGcalModalStep] = useState<{
+    goalId: string;
+    step: PlanStepItem;
+  } | null>(null);
+
+  const [formStartDate, setFormStartDate] = useState('');
+  const [formDueDate, setFormDueDate] = useState('');
+  const [formIsAllDay, setFormIsAllDay] = useState(true);
+  const [formStartTime, setFormStartTime] = useState('10:00');
+  const [formEndTime, setFormEndTime] = useState('11:00');
+  const [formColor, setFormColor] = useState('bg-indigo-600');
+
+  const [updatingStepIds, setUpdatingStepIds] = useState<Record<string, boolean>>({});
+
+  const triggerStepUpdate = async (
+    goalId: string,
+    stepId: string,
+    dueDate: string | null,
+    startDate?: string | null,
+    timeRange?: string | null,
+    startTime?: string | null,
+    endTime?: string | null,
+    isAllDay?: boolean,
+    color?: string
+  ) => {
+    if (updatingStepIds[stepId]) return; // Zaten atanıyor! Çift tıklama / lag kopyalarını engelle!
+    setUpdatingStepIds((prev) => ({ ...prev, [stepId]: true }));
+    try {
+      await onUpdateStepDate(
+        goalId,
+        stepId,
+        dueDate,
+        startDate,
+        timeRange,
+        startTime,
+        endTime,
+        isAllDay,
+        color
+      );
+    } finally {
+      setUpdatingStepIds((prev) => ({ ...prev, [stepId]: false }));
+    }
+  };
+
+  const colorPalettes = [
+    { name: 'İndigo', class: 'bg-indigo-600', text: 'text-indigo-200', border: 'border-indigo-500/50' },
+    { name: 'Zümrüt', class: 'bg-emerald-600', text: 'text-emerald-200', border: 'border-emerald-500/50' },
+    { name: 'Kehribar', class: 'bg-amber-600', text: 'text-amber-200', border: 'border-amber-500/50' },
+    { name: 'Gül Pembe', class: 'bg-rose-600', text: 'text-rose-200', border: 'border-rose-500/50' },
+    { name: 'Mor', class: 'bg-purple-600', text: 'text-purple-200', border: 'border-purple-500/50' },
+  ];
+
+  const timeSlots = useMemo(() => [
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
+    '20:00', '20:30', '21:00', '21:30', '22:00', '22:30'
+  ], []);
+
+  // Tüm hedeflerdeki adımları useMemo ile önbellekle
+  const allStepsWithContext = useMemo(() => {
+    const list: Array<{
+      step: PlanStepItem;
+      goal: GoalPlanData;
+      domainColor: string;
+      domainBadgeBg: string;
+    }> = [];
+
+    goals.forEach((goal) => {
+      const domainDef = DOMAINS_LIST.find((d) => d.id === goal.domain);
+      const domainColor = domainDef ? domainDef.color : 'text-indigo-400';
+      const domainBadgeBg = domainDef ? domainDef.bg : 'bg-indigo-500/10';
+
+      (goal.planSteps || []).forEach((step) => {
+        list.push({
+          step,
+          goal,
+          domainColor,
+          domainBadgeBg,
+        });
+      });
+    });
+
+    return list;
+  }, [goals]);
+
+  // Tarihi atanmamış görevler
+  const unscheduledSteps = useMemo(
+    () =>
+      allStepsWithContext.filter(
+        (item) => !item.step.dueDate && !item.step.startDate && !(item.step.status === 'DONE' || item.step.isCompleted)
+      ),
+    [allStepsWithContext]
+  );
+
+  // Google Takvim tarzı gün kontrolü: Bir görevin o gün içinde olup olmadığını hesapla
+  const isDateInStepRange = (dateStr: string, step: PlanStepItem) => {
+    const sDate = step.startDate || step.dueDate;
+    const eDate = step.dueDate || step.startDate;
+    if (!sDate && !eDate) return false;
+    if (sDate && eDate) {
+      return dateStr >= sDate && dateStr <= eDate;
+    }
+    return dateStr === sDate || dateStr === eDate;
+  };
+
+  // Seçili güne ait planlanan adımlar
+  const selectedDaySteps = useMemo(
+    () => allStepsWithContext.filter((item) => isDateInStepRange(selectedDateStr, item.step)),
+    [allStepsWithContext, selectedDateStr]
+  );
+
+  // Bugünün görevleri
+  const todaysSteps = useMemo(
+    () => allStepsWithContext.filter((item) => isDateInStepRange(todayStr, item.step)),
+    [allStepsWithContext, todayStr]
+  );
+  const todaysCompletedCount = useMemo(
+    () =>
+      todaysSteps.filter((item) => item.step.status === 'DONE' || item.step.isCompleted).length,
+    [todaysSteps]
+  );
+
+  // Gezinti Fonksiyonları
+  const handlePrev = () => {
+    const newD = new Date(currentDate);
+    if (viewMode === 'MONTH') {
+      newD.setMonth(newD.getMonth() - 1);
+    } else {
+      newD.setDate(newD.getDate() - 7);
+    }
+    setCurrentDate(newD);
+  };
+
+  const handleNext = () => {
+    const newD = new Date(currentDate);
+    if (viewMode === 'MONTH') {
+      newD.setMonth(newD.getMonth() + 1);
+    } else {
+      newD.setDate(newD.getDate() + 7);
+    }
+    setCurrentDate(newD);
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+    setSelectedDateStr(todayStr);
+  };
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const daysGrid = useMemo(() => {
+    const firstDayOfMonth = new Date(year, month, 1);
+    const firstDayWeekday = (firstDayOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const grid: Array<{ dayNum: number | null; dateStr: string | null }> = [];
+    for (let i = 0; i < firstDayWeekday; i++) {
+      grid.push({ dayNum: null, dateStr: null });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const mStr = String(month + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      grid.push({ dayNum: d, dateStr: `${year}-${mStr}-${dStr}` });
+    }
+    return grid;
+  }, [year, month]);
+
+  const monthNamesTr = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  ];
+
+  const openGcalModal = (goalId: string, step: PlanStepItem) => {
+    setGcalModalStep({ goalId, step });
+    setFormStartDate(step.startDate || selectedDateStr);
+    setFormDueDate(step.dueDate || step.startDate || selectedDateStr);
+    setFormIsAllDay(step.isAllDay !== undefined ? step.isAllDay : true);
+    setFormStartTime(step.startTime || '10:00');
+    setFormEndTime(step.endTime || '11:00');
+    setFormColor(step.color || 'bg-indigo-600');
+  };
+
+  const handleSaveGcalEvent = async () => {
+    if (!gcalModalStep) return;
+    const formattedTimeRange = formIsAllDay ? 'Tüm Gün' : `${formStartTime} - ${formEndTime}`;
+    await triggerStepUpdate(
+      gcalModalStep.goalId,
+      gcalModalStep.step.id,
+      formDueDate || null,
+      formStartDate || null,
+      formattedTimeRange,
+      formStartTime,
+      formEndTime,
+      formIsAllDay,
+      formColor
+    );
+    setGcalModalStep(null);
+  };
+
+  return (
+    <div className="space-y-6 relative">
+      {/* GOOGLE TAKVİM TARZI ETKİNLİK & ARALIK DÜZENLEME MODALI */}
+      {gcalModalStep ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="glass-panel p-6 rounded-3xl border border-white/20 max-w-lg w-full space-y-6 shadow-2xl">
+            {/* Üst Başlık */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-extrabold text-white">Etkinlik & Tarih Aralığı Düzenle</h4>
+                  <p className="text-[11px] text-gray-400">Gelişmiş etkinlik ve zaman aralığı planlayıcı</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setGcalModalStep(null)}
+                className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* İçerik */}
+            <div className="space-y-4 text-left">
+              {/* Görev Adı */}
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block">Planlanan Görev</span>
+                <p className="text-sm font-bold text-white mt-0.5">{gcalModalStep.step.text}</p>
+              </div>
+
+              {/* Tarih Aralığı Seçimi */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+                  <span>📅 Tarih Aralığı (Başlangıç - Bitiş)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] font-semibold text-gray-400 block mb-1">Başlangıç Tarihi</span>
+                    <input
+                      type="date"
+                      value={formStartDate}
+                      onChange={(e) => {
+                        setFormStartDate(e.target.value);
+                        if (e.target.value > formDueDate) setFormDueDate(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-medium focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold text-gray-400 block mb-1">Bitiş Tarihi</span>
+                    <input
+                      type="date"
+                      value={formDueDate}
+                      min={formStartDate}
+                      onChange={(e) => setFormDueDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs font-medium focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tüm Gün / Saat Aralığı */}
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">Tüm Gün Etkinliği</span>
+                    <span className="text-[11px] text-gray-400">Belirli saat aralığı girmeden tüm güne ata</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormIsAllDay(!formIsAllDay)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                      formIsAllDay ? 'bg-indigo-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                        formIsAllDay ? 'right-1' : 'left-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {!formIsAllDay ? (
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                    <div>
+                      <span className="text-[10px] font-semibold text-gray-400 block mb-1">Başlangıç Saati</span>
+                      <select
+                        value={formStartTime}
+                        onChange={(e) => setFormStartTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-white text-xs font-medium"
+                      >
+                        {timeSlots.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-gray-400 block mb-1">Bitiş Saati</span>
+                      <select
+                        value={formEndTime}
+                        onChange={(e) => setFormEndTime(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-white text-xs font-medium"
+                      >
+                        {timeSlots.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Etkinlik Rengi Paleti */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300">🎨 Etkinlik Kartı Rengi</label>
+                <div className="flex items-center gap-2.5">
+                  {colorPalettes.map((item) => (
+                    <button
+                      key={item.class}
+                      type="button"
+                      onClick={() => setFormColor(item.class)}
+                      className={`h-8 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all ${
+                        item.class
+                      } ${
+                        formColor === item.class ? 'ring-2 ring-white scale-105 shadow-lg' : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span>{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Alt Butonlar */}
+            <div className="flex items-center justify-between pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={async () => {
+                  await triggerStepUpdate(gcalModalStep.goalId, gcalModalStep.step.id, null, null, null, null, null, true, '');
+                  setGcalModalStep(null);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Takvimden Çıkar</span>
+              </button>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setGcalModalStep(null)}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveGcalEvent}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-colors"
+                >
+                  Etkinliği Kaydet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 1. Oyunlaştırılmış Zinciri Kırma (Streak) Şeridi */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-indigo-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <Flame className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold text-amber-300">GÜNLÜK ODAK & SERİ TAKİBİ</span>
+              {todaysSteps.length > 0 && todaysCompletedCount === todaysSteps.length ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  🔥 Bugünkü Zincir Sağlam!
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Bugün planlanan <strong className="text-white">{todaysSteps.length}</strong> görevin{' '}
+              <strong className="text-amber-300">{todaysCompletedCount}</strong> tanesi tamamlandı. Günlük adımlarını bitir zinciri kırma!
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleToday}
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
+          >
+            Bugüne Dön
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Takvim Ana Konteyner ve Kenar Tepsisi */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* SOL/ORTA: Takvim Panosu (3 Kolon Kaplar) */}
+        <div className="lg:col-span-3 glass-panel p-6 rounded-3xl border border-white/10 space-y-6">
+          {/* Gezinti Başlığı */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            <div>
+              <h3 className="text-lg font-extrabold text-white">
+                {monthNamesTr[month]} {year}
+              </h3>
+              <p className="text-xs text-gray-400">
+                Google Takvim tarzı çok günlük etkinlikler ve saat aralıkları
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrev}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleToday}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors"
+              >
+                Bugün
+              </button>
+              <button
+                onClick={handleNext}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Haftanın Günleri Başlıkları */}
+          <div className="grid grid-cols-7 gap-2 text-center">
+            {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((dayName, idx) => (
+              <div key={idx} className="py-2 text-xs font-extrabold text-gray-400 uppercase tracking-wider">
+                {dayName}
+              </div>
+            ))}
+          </div>
+
+          {/* Takvim Izgarası (Google Takvim Tarzı Çok Günlük Şeritler) */}
+          <div className="grid grid-cols-7 gap-2.5">
+            {daysGrid.map((dayItem, index) => {
+              if (!dayItem.dayNum || !dayItem.dateStr) {
+                return (
+                  <div key={index} className="min-h-[125px] rounded-2xl bg-white/[0.02] border border-white/5" />
+                );
+              }
+
+              const isToday = dayItem.dateStr === todayStr;
+              const isSelected = dayItem.dateStr === selectedDateStr;
+              const daySteps = allStepsWithContext.filter((s) => isDateInStepRange(dayItem.dateStr!, s.step));
+
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setSelectedDateStr(dayItem.dateStr!);
+                    setTrayTab('SELECTED_DAY');
+                  }}
+                  className={`min-h-[125px] p-2.5 rounded-2xl border transition-colors duration-150 cursor-pointer flex flex-col justify-between group relative hover:z-50 ${
+                    isToday
+                      ? 'bg-indigo-500/15 border-indigo-500/60 ring-2 ring-indigo-500/30'
+                      : isSelected
+                      ? 'bg-white/10 border-white/30'
+                      : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/[0.07]'
+                  }`}
+                >
+                  {/* HOVER OVERVIEW POPOVER KARTI (Günde görev varsa üzerine gelindiğinde görünür) */}
+                  {daySteps.length > 0 ? (
+                    <div
+                      className={`hidden group-hover:block absolute z-50 w-64 p-3.5 rounded-2xl glass-panel bg-gray-900/95 border border-indigo-500/40 shadow-2xl backdrop-blur-xl pointer-events-none animate-in fade-in duration-150 ${
+                        index % 7 >= 4 ? 'right-0' : 'left-0'
+                      } ${
+                        index < 14 ? 'top-full mt-2' : 'bottom-full mb-2'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                        <div>
+                          <h5 className="text-xs font-extrabold text-white">
+                            {dayItem.dayNum} {monthNamesTr[month]} Özeti
+                          </h5>
+                          <span className="text-[10px] text-gray-400">
+                            {daySteps.filter((s) => s.step.status === 'DONE' || s.step.isCompleted).length} / {daySteps.length} Tamamlandı
+                          </span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          % {Math.round((daySteps.filter((s) => s.step.status === 'DONE' || s.step.isCompleted).length / daySteps.length) * 100 || 0)}
+                        </span>
+                      </div>
+
+                      {/* Mini İlerleme Çubuğu */}
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden my-2.5">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
+                          style={{
+                            width: `${Math.round((daySteps.filter((s) => s.step.status === 'DONE' || s.step.isCompleted).length / daySteps.length) * 100 || 0)}%`,
+                          }}
+                        />
+                      </div>
+
+                      {/* Görev Listesi Özeti */}
+                      <div className="space-y-1.5 max-h-[160px] overflow-hidden">
+                        {daySteps.map(({ step, goal }) => {
+                          const isDone = step.status === 'DONE' || step.isCompleted;
+                          const stepColorClass = step.color || 'bg-indigo-600';
+                          return (
+                            <div
+                              key={`hover___${goal.id}___${step.id}`}
+                              className="p-1.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-[10px]"
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${stepColorClass}`} />
+                                <span className={`font-bold truncate ${isDone ? 'line-through text-gray-400' : 'text-white'}`}>
+                                  {step.text}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-extrabold text-indigo-300 shrink-0 ml-1">
+                                {step.timeRange || 'Tüm Gün'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-extrabold ${
+                        isToday ? 'text-indigo-300' : 'text-gray-300'
+                      }`}
+                    >
+                      {dayItem.dayNum}
+                    </span>
+                    {daySteps.length > 0 ? (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-gray-300">
+                        {daySteps.length}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {/* Günün Adımları - Renkli Etkinlik Çubukları */}
+                  <div className="space-y-1.5 mt-2 overflow-y-auto max-h-[85px]">
+                    {daySteps.map(({ step, goal }) => {
+                      const isDone = step.status === 'DONE' || step.isCompleted;
+                      const stepColorClass = step.color || 'bg-indigo-600/80';
+                      const isMultiDay = step.startDate && step.dueDate && step.startDate !== step.dueDate;
+
+                      return (
+                        <div
+                          key={`${goal.id}___${step.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openGcalModal(goal.id, step);
+                          }}
+                          className={`p-1.5 rounded-lg text-[10px] flex items-center justify-between transition-colors shadow-sm ${
+                            isDone
+                              ? 'bg-emerald-600/40 text-emerald-100 line-through opacity-75 border border-emerald-400/30'
+                              : `${stepColorClass} text-white hover:brightness-110`
+                          }`}
+                          title={`${step.text} - Tarih ve Saat Düzenleyiciyi Aç`}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleStep(goal.id, step.id);
+                              }}
+                              className="w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border border-white/60 hover:bg-white/20"
+                            >
+                              {isDone ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : null}
+                            </div>
+                            <span className="font-bold truncate">{step.text}</span>
+                          </div>
+
+                          {/* Zaman rozeti ya da Çok Günlük Şerit işareti */}
+                          <span className="text-[9px] font-extrabold px-1 py-0.5 rounded bg-black/20 shrink-0">
+                            {isMultiDay ? 'Çok Günlük' : step.timeRange || 'Tüm Gün'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* SAĞ KENAR ÇUBUĞU: Çift Sekmeli Tepsi */}
+        <div className="glass-panel p-5 rounded-3xl border border-white/10 flex flex-col space-y-4">
+          {/* Sekme Değiştirici */}
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-black/40 border border-white/10">
+            <button
+              onClick={() => setTrayTab('UNSCHEDULED')}
+              className={`py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+                trayTab === 'UNSCHEDULED'
+                  ? 'bg-amber-600 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Bekleyenler ({unscheduledSteps.length})
+            </button>
+            <button
+              onClick={() => setTrayTab('SELECTED_DAY')}
+              className={`py-1.5 text-[11px] font-extrabold rounded-xl transition-all ${
+                trayTab === 'SELECTED_DAY'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Seçili Gün ({selectedDaySteps.length})
+            </button>
+          </div>
+
+          <div className="pb-2 border-b border-white/10">
+            <h4 className="text-xs font-extrabold text-white">
+              {trayTab === 'SELECTED_DAY'
+                ? `${selectedDateStr} Gününün Etkinlikleri`
+                : 'Planlanmamış Görevler'}
+            </h4>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              {trayTab === 'SELECTED_DAY'
+                ? 'Günün etkinliklerini tamamlayın veya tıkla/düzenle ile tarih aralığı değiştirin.'
+                : `Görevlere tıklayarak Google Takvim tarzı aralık veya saat atayabilirsiniz.`}
+            </p>
+          </div>
+
+          <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[460px]">
+            {trayTab === 'SELECTED_DAY' ? (
+              selectedDaySteps.length === 0 ? (
+                <div className="p-6 rounded-2xl border border-dashed border-white/10 text-center">
+                  <p className="text-xs text-gray-500">
+                    {selectedDateStr} tarihinde planlanmış etkinlik yok.
+                  </p>
+                </div>
+              ) : (
+                selectedDaySteps.map(({ step, goal }) => {
+                  const isDone = step.status === 'DONE' || step.isCompleted;
+                  return (
+                    <div
+                      key={`${goal.id}___${step.id}`}
+                      className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div
+                          onClick={() => onToggleStep(goal.id, step.id)}
+                          className="flex items-start gap-2.5 cursor-pointer flex-1"
+                        >
+                          <div
+                            className={`w-4 h-4 rounded mt-0.5 shrink-0 flex items-center justify-center border ${
+                              isDone ? 'bg-emerald-500 border-emerald-400 text-black' : 'border-white/30'
+                            }`}
+                          >
+                            {isDone ? <Check className="w-3 h-3 stroke-[3]" /> : null}
+                          </div>
+                          <div>
+                            <p
+                              className={`text-xs font-bold leading-snug ${
+                                isDone ? 'text-emerald-300 line-through' : 'text-white'
+                              }`}
+                            >
+                              {step.text}
+                            </p>
+                            <span className="text-[10px] text-gray-400 block mt-0.5">
+                              {step.startDate && step.dueDate && step.startDate !== step.dueDate
+                                ? `📅 ${step.startDate} -> ${step.dueDate}`
+                                : `📅 ${step.dueDate || step.startDate}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/10 text-indigo-300">
+                          {step.timeRange || 'Tüm Gün'}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => openGcalModal(goal.id, step)}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 text-[10px] font-bold transition-colors"
+                          >
+                            ✏️ Düzenle / Aralık
+                          </button>
+                          <button
+                            onClick={() => triggerStepUpdate(goal.id, step.id, null)}
+                            disabled={updatingStepIds[step.id]}
+                            className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 disabled:opacity-50 text-rose-300 transition-colors"
+                            title="Takvimden Çıkar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )
+            ) : unscheduledSteps.length === 0 ? (
+              <div className="p-6 rounded-2xl border border-dashed border-white/10 text-center">
+                <p className="text-xs text-gray-500">Tüm açık görevlerinize tarih atanmış 🎉</p>
+              </div>
+            ) : (
+              unscheduledSteps.map(({ step, goal }) => (
+                <div
+                  key={`${goal.id}___${step.id}`}
+                  className="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-indigo-500/40 transition-colors space-y-2.5 group"
+                >
+                  <p className="text-xs font-bold text-white leading-snug">
+                    {step.text}
+                  </p>
+                  <div className="flex items-center justify-between pt-1 border-t border-white/10">
+                    <button
+                      onClick={() => openGcalModal(goal.id, step)}
+                      className="px-2.5 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-[11px] font-bold transition-colors flex items-center gap-1"
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" />
+                      <span>📅 Tarih & Saat Ayarla</span>
+                    </button>
+                    <button
+                      onClick={() => triggerStepUpdate(goal.id, step.id, selectedDateStr)}
+                      disabled={updatingStepIds[step.id]}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-[11px] font-bold transition-all shadow flex items-center gap-1"
+                    >
+                      {updatingStepIds[step.id] ? '⏳ Atanıyor...' : 'Seçili Tarihe Ata'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

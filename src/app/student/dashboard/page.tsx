@@ -6,6 +6,7 @@ import {
   Users, CheckCircle2, AlertTriangle, Star, Shield, HeartHandshake, Target 
 } from 'lucide-react';
 import { Role } from '@prisma/client';
+import { WeeklyFocusWidget } from '@/components/student/weekly-focus-widget';
 
 export default async function StudentDashboardPage() {
   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
@@ -103,6 +104,9 @@ export default async function StudentDashboardPage() {
             </Link>
           </div>
         )}
+
+        {/* SEÇENEK C: Haftalık Odak ve Ajanda Widget'ı */}
+        <WeeklyFocusWidget />
 
         {/* Main Action Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

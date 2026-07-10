@@ -60,9 +60,8 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/"
-              className={`text-sm font-medium transition-colors hover:text-indigo-400 ${
-                pathname === '/' ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname === '/' ? 'text-indigo-400 font-semibold' : 'text-gray-300'
+                }`}
             >
               Ana Sayfa
             </Link>
@@ -73,34 +72,24 @@ export function Navbar() {
                   <>
                     <Link
                       href="/student/dashboard"
-                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${
-                        pathname.startsWith('/student/dashboard') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-                      }`}
+                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/dashboard') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
+                        }`}
                     >
                       Öğrenci Paneli
                     </Link>
                     <Link
                       href="/student/goals"
-                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${
-                        pathname.startsWith('/student/goals') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
-                      }`}
+                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/goals') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
+                        }`}
                     >
                       Hedef Takibi
                     </Link>
                     <Link
                       href="/student/onboarding"
-                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${
-                        pathname.startsWith('/student/onboarding') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-                      }`}
+                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/onboarding') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
+                        }`}
                     >
                       Profil Bilgileri
-                    </Link>
-                    <Link
-                      href="/rpg/test"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-medium bg-gradient-to-r from-indigo-500/20 to-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
-                    >
-                      <Sparkles className="w-4 h-4 text-emerald-400" />
-                      RPG Keşif Adası
                     </Link>
                   </>
                 )}
@@ -108,9 +97,8 @@ export function Navbar() {
                 {session.user.role === 'TEACHER' && (
                   <Link
                     href="/teacher/dashboard"
-                    className={`text-sm font-medium transition-colors hover:text-purple-400 ${
-                      pathname.startsWith('/teacher') ? 'text-purple-400 font-semibold' : 'text-gray-300'
-                    }`}
+                    className={`text-sm font-medium transition-colors hover:text-purple-400 ${pathname.startsWith('/teacher') ? 'text-purple-400 font-semibold' : 'text-gray-300'
+                      }`}
                   >
                     Danışmanlık Paneli
                   </Link>
@@ -119,9 +107,8 @@ export function Navbar() {
                 {session.user.role === 'ADMIN' && (
                   <Link
                     href="/admin/dashboard"
-                    className={`text-sm font-medium transition-colors hover:text-emerald-400 ${
-                      pathname.startsWith('/admin') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
-                    }`}
+                    className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/admin') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
+                      }`}
                   >
                     Yönetici Paneli
                   </Link>

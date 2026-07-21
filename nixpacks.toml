@@ -1,0 +1,14 @@
+# Dokploy / Nixpacks Configuration for ROTA Project
+# Ensures Node.js 22 is used during build and deployment so Prisma 7 & Next.js 16 requirements are met.
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "openssl"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"

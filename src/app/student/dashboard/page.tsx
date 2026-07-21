@@ -81,29 +81,105 @@ export default async function StudentDashboardPage() {
           </div>
         </div>
 
-        {/* Onboarding Alert if not completed */}
-        {!profile?.completedOnboarding && (
+        {/* AKILLI YÖNLENDİRME BANNER'I (Next Best Action - Tamamlanmamış Öncelikli Adım) */}
+        {!profile?.completedOnboarding ? (
           <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-300 border border-amber-500/30 flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 animate-bounce" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Öncelikli Adım: Kişisel ve Aile Profilinizi Tamamlayın!</h3>
+                <h3 className="text-lg font-bold text-white">Öncelikli Adım: Kişisel ve Akademik Profilinizi Tamamlayın</h3>
                 <p className="text-xs text-gray-300">
-                  Size en uygun RPG senaryosunu hazırlamamız için 3 adımlı kısa formu doldurun ve anında <span className="text-amber-300 font-bold">+50 XP kazanın</span>.
+                  Sınıfınıza ve hedefinize özel rehberlik önerileri sunabilmemiz için profil bilginizi doldurun.
                 </p>
               </div>
             </div>
             <Link
-              href="/student/onboarding"
+              href="/student/profile"
               className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-sm whitespace-nowrap shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
             >
-              <span>Formu Doldur</span>
+              <span>Profili Tamamla</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        )}
+        ) : !profile?.personalityResult ? (
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-indigo-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-300 border border-indigo-500/30 flex-shrink-0">
+                <Compass className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Öncelikli Adım: Öğrenme Tarzınızı ve Akademik Eğiliminizi Keşfedin</h3>
+                <p className="text-xs text-gray-300">
+                  Rehberlik envanterini çözerek güçlü yönlerinizi ve çalışma stratejisi önerilerinizi anında öğrenin.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/rpg/test"
+              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm whitespace-nowrap shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
+            >
+              <span>Envanteri Çöz</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : null}
+
+        {/* HIZLI ERİŞİM VE ARAÇLAR WİDGET'I */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link
+            href="/student/goals"
+            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-indigo-400/40 flex items-center gap-3 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 shrink-0 group-hover:scale-110 transition-transform">
+              <Target className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Takvim & Görevler</h4>
+              <p className="text-[10px] text-gray-400">Haftalık planını yönet</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/student/profile"
+            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-purple-400/40 flex items-center gap-3 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Profil & İstatistikler</h4>
+              <p className="text-[10px] text-gray-400">Gelişimini ve künyeni gör</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/student/domains"
+            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-emerald-400/40 flex items-center gap-3 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 group-hover:scale-110 transition-transform">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Hedef Sihirbazı</h4>
+              <p className="text-[10px] text-gray-400">AI ile yeni hedefler seç</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/rpg/test"
+            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-amber-400/40 flex items-center gap-3 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0 group-hover:scale-110 transition-transform">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Rehberlik Envanteri</h4>
+              <p className="text-[10px] text-gray-400">Öğrenme profili testi</p>
+            </div>
+          </Link>
+        </div>
 
         {/* SEÇENEK C: Haftalık Odak ve Ajanda Widget'ı */}
         <WeeklyFocusWidget />

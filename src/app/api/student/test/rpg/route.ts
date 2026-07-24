@@ -148,7 +148,7 @@ export async function POST(req: Request) {
       include: { scenes: true },
     });
 
-    const totalScenesCount = activeScenario?.scenes.length || 15;
+    const totalScenesCount = activeScenario?.scenes.length || 8;
 
     // Eğer tüm sahneler tamamlandıysa kişilik analizini hesapla ve kaydet
     if (allAnswers.length >= totalScenesCount) {

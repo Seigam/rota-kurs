@@ -22,7 +22,7 @@ export default async function RpgTestPage() {
             Gizemli Akademi: <span className="text-gradient">Kariyer Yolculuğu</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-xl mx-auto">
-            15 sahneli macerada kararlar alın, kendi yolunuzu çizin ve her sahnede +10 XP kazanın!
+            8 sahneli macerada kararlar alın, kendi yolunuzu çizin ve her sahnede +10 XP kazanın!
           </p>
         </div>
 

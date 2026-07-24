@@ -62,7 +62,7 @@ export default async function HomePage() {
         </h1>
 
         <p className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto font-normal leading-relaxed">
-          Gizemli Akademi&apos;de 15 sahneli bir serüvene çık, MBTI ve Enneagram motivasyon tipini öğren, sana en uygun TÜBİTAK bursları ve üniversite gelişim programlarıyla kariyer haritanı oluştur.
+          Gizemli Akademi&apos;de 8 sahneli bir serüvene çık, MBTI ve Enneagram motivasyon tipini öğren, sana en uygun TÜBİTAK bursları ve üniversite gelişim programlarıyla kariyer haritanı oluştur.
         </p>
 
         {/* Action Buttons */}
@@ -165,7 +165,7 @@ export default async function HomePage() {
               RPG Kişilik & Motivasyon Keşfi
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed">
-              15 sahneli "Gizemli Akademi" macerasında verdiğin kararlarla arka planda MBTI boyutları ve Enneagram kanat tiplerini hesaplar.
+              8 sahneli "Gizemli Akademi" macerasında verdiğin kararlarla arka planda MBTI boyutları ve Enneagram kanat tiplerini hesaplar.
             </p>
             <div className="pt-2 flex items-center gap-2 text-xs font-bold text-indigo-400 group-hover:text-indigo-300">
               <span>Keşif Adasını İncele</span>

@@ -56,7 +56,7 @@ export async function GET() {
       return NextResponse.json({ redirectTo: '/rpg/test' });
     }
 
-    return NextResponse.json({ redirectTo: '/student/dashboard' });
+    return NextResponse.json({ redirectTo: '/student/roadmap' });
   }
 
   return NextResponse.json({ redirectTo: '/' });

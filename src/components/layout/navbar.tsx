@@ -69,13 +69,7 @@ export function Navbar() {
               <>
                 {session.user.role === 'STUDENT' && (
                   <>
-                    <Link
-                      href="/student/dashboard"
-                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/dashboard') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-                        }`}
-                    >
-                      Öğrenci Paneli
-                    </Link>
+
                     <Link
                       href="/student/roadmap"
                       className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/roadmap') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
@@ -128,16 +122,21 @@ export function Navbar() {
             {status === 'loading' ? (
               <div className="w-24 h-8 bg-white/5 animate-pulse rounded-lg" />
             ) : status === 'authenticated' && session?.user ? (
-              <div className="flex items-center gap-3 bg-white/5 py-1.5 px-3 rounded-xl border border-white/10">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/30 flex items-center justify-center border border-indigo-500/40">
-                  <User className="w-4 h-4 text-indigo-300" />
-                </div>
-                <div className="hidden sm:block text-left">
-                  <div className="text-xs font-semibold text-white truncate max-w-[120px]">
-                    {session.user.name || session.user.email}
-                  </div>
-                  <div className="mt-0.5">{getRoleBadge(session.user.role)}</div>
-                </div>
+                <div className="flex items-center gap-3 bg-white/5 py-1.5 px-3 rounded-xl border border-white/10">
+                  <Link
+                    href={session.user.role === 'STUDENT' ? '/student/dashboard' : session.user.role === 'TEACHER' ? '/teacher/dashboard' : '/admin/dashboard'}
+                    className="flex items-center gap-3 group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600/30 flex items-center justify-center border border-indigo-500/40 group-hover:bg-indigo-500/40 transition-colors">
+                      <User className="w-4 h-4 text-indigo-300" />
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-xs font-semibold text-white truncate max-w-[120px] group-hover:text-indigo-300 transition-colors">
+                        {session.user.name || session.user.email}
+                      </div>
+                      <div className="mt-0.5">{getRoleBadge(session.user.role)}</div>
+                    </div>
+                  </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="ml-1 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"

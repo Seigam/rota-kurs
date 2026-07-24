@@ -343,7 +343,7 @@ export function LifeDomainsMatrix() {
       {/* Active Domain Workspace */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 space-y-8 relative overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className={`p-3.5 rounded-2xl border ${activeInfo.bgClass} ${activeInfo.colorClass}`}>
               <ActiveIcon className="w-7 h-7" />
@@ -353,6 +353,14 @@ export function LifeDomainsMatrix() {
               <p className="text-xs text-gray-400 mt-0.5">{activeInfo.desc}</p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={handleFinishAndProceed}
+            className="w-full sm:w-auto glow-button px-5 py-2.5 rounded-xl text-white font-extrabold text-xs tracking-wide shadow-xl flex items-center justify-center gap-2"
+          >
+            <span>Kişilik Testine Geç (Adım 4)</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* STEP 1: Wish / İstek */}
@@ -492,7 +500,7 @@ export function LifeDomainsMatrix() {
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-end gap-4">
           <button
             type="button"
             onClick={handleSaveDomain}
@@ -507,15 +515,6 @@ export function LifeDomainsMatrix() {
                 <span>{activeInfo.label} Planını Kaydet</span>
               </>
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFinishAndProceed}
-            className="w-full sm:w-auto glow-button px-7 py-3.5 rounded-2xl text-white font-extrabold text-xs tracking-wide shadow-xl flex items-center justify-center gap-2"
-          >
-            <span>Kişilik Testine Geç (Adım 4)</span>
-            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

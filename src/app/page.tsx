@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { 
-  Compass, Sparkles, ArrowRight, Zap, 
+import {
+  Compass, Sparkles, ArrowRight, Zap,
   Brain, Target, Users, Star, Rocket,
   ChevronRight, HeartHandshake, Layers, ChevronDown, BookOpen
 } from 'lucide-react';
@@ -18,10 +18,6 @@ export default async function HomePage() {
 
       {/* Hero Section */}
       <section className="relative z-10 pt-16 sm:pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-indigo-300 backdrop-blur-md shadow-xl hover:border-indigo-500/40 transition-all cursor-default animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-amber-300 animate-spin-slow" />
-          <span>Yapay Zeka & Simülasyon Destekli Lise Rehberlik ve Kariyer Devrimi</span>
-        </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight max-w-4xl mx-auto leading-none sm:leading-tight">
           Geleceğini Şansa Bırakma, <br className="hidden sm:inline" />
@@ -31,7 +27,7 @@ export default async function HomePage() {
         </h1>
 
         <p className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto font-normal leading-relaxed">
-          Gizemli Akademi&apos;de 8 sahneli bir serüvene çık, MBTI ve Enneagram motivasyon tipini öğren, sana en uygun TÜBİTAK bursları ve üniversite gelişim programlarıyla kariyer haritanı oluştur.
+          Gizemli Akademi&apos;de 8 sahneli bir serüvene çık, MBTI ve Enneagram motivasyon tipini öğren, sana en uygun yol haritanı oluştur.
         </p>
 
         {/* Action Buttons */}
@@ -244,7 +240,7 @@ export default async function HomePage() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Kariyer Yolculuğunu <span className="text-gradient">FutuRoute</span> ile Başlat!
+            Hayat Yolculuğunu <span className="text-gradient">FutuRoute</span> ile Başlat!
           </h2>
           <p className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto">
             İster öğrenci olarak kişilik tipini keşfet, ister rehber öğretmen olarak öğrencilerinin gelişimini 360 derece takip et.
@@ -280,9 +276,9 @@ export default async function HomePage() {
               GİRİŞ YAP
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Kariyerin İçin{' '}
+              Hayatın İçin{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400">
-                FutuRoute'u Başlat
+                FutuRoute'u Keşfet
               </span>
             </h2>
             <p className="text-sm text-gray-400 max-w-md mx-auto">

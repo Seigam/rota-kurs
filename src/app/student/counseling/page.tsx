@@ -50,7 +50,7 @@ export default async function StudentCounselingPage() {
               <HeartHandshake className="w-12 h-12 text-gray-500 mx-auto" />
               <h3 className="text-lg font-bold text-white">Henüz Paylaşılmış Bir Not Yok</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                Rehber öğretmeniniz RPG test sonuçlarınızı ve aile profilinizi inceledikten sonra buraya size özel tavsiye ve yönlendirme notları ekleyecektir.
+                Rehber öğretmeniniz kişilik simülasyonu sonuçlarınızı ve aile profilinizi inceledikten sonra buraya size özel tavsiye ve yönlendirme notları ekleyecektir.
               </p>
             </div>
           )}

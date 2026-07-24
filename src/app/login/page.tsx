@@ -68,10 +68,10 @@ export default function LoginPage() {
               <Compass className="w-10 h-10 text-white animate-spin-slow" />
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              <span className="text-gradient">ROTA</span>'ya Hoş Geldiniz!
+              <span className="text-gradient">FutuRoute</span>'a Hoş Geldiniz!
             </h1>
             <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
-              Lise rehberlik ve RPG kariyer keşif platformuna giriş yapmak için kim olduğunuzu seçin.
+              Lise rehberlik ve kişiselleştirilmiş kariyer keşif platformuna giriş yapmak için kim olduğunuzu seçin.
             </p>
           </div>
 
@@ -96,12 +96,12 @@ export default function LoginPage() {
                     Öğrenci Girişi
                   </h2>
                   <p className="text-sm text-gray-400 leading-relaxed">
-                    Kişilik testine gir, kariyer rotanı keşfet, TÜBİTAK burslarını ve önerilen programları gör.
+                    Kişilik testine gir, kariyer hedefini keşfet, TÜBİTAK burslarını ve önerilen programları gör.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 text-[11px] font-bold border border-indigo-500/20">RPG Testi</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 text-[11px] font-bold border border-indigo-500/20">Kişilik Testi</span>
                   <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 text-[11px] font-bold border border-purple-500/20">MBTI & Enneagram</span>
                   <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 text-[11px] font-bold border border-emerald-500/20">Kariyer Haritası</span>
                 </div>

@@ -468,12 +468,7 @@ export function RpgGameEngine() {
                 )}
               </div>
 
-              {/* Bottom Focus Tag Badge */}
-              <div className="pt-4 mt-auto">
-                <span className="px-3.5 py-1 text-[11px] font-semibold rounded-full border border-purple-500/40 bg-purple-950/40 text-purple-300 tracking-wide inline-block w-fit group-hover:border-purple-400 group-hover:text-purple-200 transition-colors">
-                  {tag}
-                </span>
-              </div>
+
             </button>
           );
         })}

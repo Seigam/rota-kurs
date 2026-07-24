@@ -179,7 +179,7 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Kişisel Profil Bilgileri</h2>
-                <p className="text-xs text-gray-400">Okul durumunuzu ve ilgi alanlarınızı tanıyıp size özel RPG senaryosu üreteceğiz.</p>
+                <p className="text-xs text-gray-400">Okul durumunuzu ve ilgi alanlarınızı tanıyıp size özel kariyer senaryosu üreteceğiz.</p>
               </div>
             </div>
 

@@ -241,7 +241,7 @@ export function AdminDashboardClient() {
 
         <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 space-y-2 shadow-xl bg-gradient-to-br from-amber-950/20 to-black/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">RPG Senaryoları</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Senaryolar</span>
             <div className="w-9 h-9 rounded-xl bg-amber-600/30 flex items-center justify-center text-amber-300">
               <Sparkles className="w-5 h-5" />
             </div>

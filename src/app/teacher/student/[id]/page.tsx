@@ -105,7 +105,7 @@ export default async function TeacherStudentDetailPage({ params }: PageProps) {
               </div>
             </div>
             <p className="text-xs text-gray-300 leading-relaxed">
-              {pRes?.summary || 'Öğrenci henüz Gizemli Akademi RPG testini tamamlamadı.'}
+              {pRes?.summary || 'Öğrenci henüz kişilik simülasyonunu tamamlamadı.'}
             </p>
             {pRes && (
               <div className="pt-2 border-t border-white/10 flex flex-wrap gap-1">
@@ -192,7 +192,7 @@ export default async function TeacherStudentDetailPage({ params }: PageProps) {
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Yapay Zeka Rotaları</span>
+              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Yapay Zeka Önerileri</span>
               <h3 className="text-lg font-bold text-white">Öğrenciye Önerilen İlk 3 Program</h3>
             </div>
           </div>

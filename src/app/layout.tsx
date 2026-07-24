@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ROTA | Lise RPG Kariyer & Rehberlik Platformu",
-  description: "Lise öğrencileri için oyunlaştırılmış RPG temelli kariyer, aile ve psikolojik rehberlik keşif platformu. Kişilik tipini keşfet, kariyer rotanı çiz.",
+  title: "FutuRoute | Hayat Boyu Öğrenme",
+  description: "Lise öğrencileri için kişiselleştirilmiş kariyer, aile ve psikolojik rehberlik keşif platformu. Kişilik testini çöz, kariyer hedefini belirle.",
 };
 
 export default function RootLayout({

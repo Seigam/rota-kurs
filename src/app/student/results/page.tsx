@@ -37,7 +37,7 @@ export default async function StudentResultsPage() {
         <div className="glass-panel p-8 rounded-3xl text-center space-y-4 max-w-md">
           <AlertCircle className="w-12 h-12 text-amber-400 mx-auto" />
           <h2 className="text-xl font-bold text-white">Profil Bulunamadı</h2>
-          <p className="text-xs text-gray-400">Raporunuzun oluşması için önce profilinizi ve RPG testini tamamlayın.</p>
+          <p className="text-xs text-gray-400">Raporunuzun oluşması için önce profilinizi ve kişilik testini tamamlayın.</p>
           <Link href="/student/dashboard" className="glow-button px-6 py-2.5 rounded-xl text-white font-bold text-xs inline-block">
             Panele Dön
           </Link>
@@ -119,7 +119,7 @@ export default async function StudentResultsPage() {
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">
-              {pRes?.summary || 'Gizemli Akademi RPG macerasına katılarak kişisel güç alanlarınızı ve kariyer motivasyonlarınızı keşfedin.'}
+              {pRes?.summary || 'Kişilik simülasyonuna katılarak kişisel güç alanlarınızı ve kariyer motivasyonlarınızı keşfedin.'}
             </p>
 
             {pRes && (

@@ -49,3 +49,5 @@ next-env.d.ts
 
 # Local prompt files
 kariyer-planlama-prompt.md
+.playwright-cli/
+.playwright-cli/

@@ -63,7 +63,7 @@ export function LandingLoginSection() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-extrabold text-white group-hover:text-indigo-300 transition-colors">Öğrenci Girişi</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">RPG testi, kariyer rotası, TÜBİTAK programları ve kişilik profili.</p>
+              <p className="text-xs text-gray-400 leading-relaxed">Kişilik testi, kariyer hedefleri, TÜBİTAK programları ve kişilik profili.</p>
             </div>
             <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold">
               <span>Öğrenci Olarak Devam Et</span>

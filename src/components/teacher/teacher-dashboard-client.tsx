@@ -127,7 +127,7 @@ export function TeacherDashboardClient() {
 
         <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 space-y-2 shadow-xl bg-gradient-to-br from-purple-950/20 to-black/40">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">RPG Testini Bitiren</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Simülasyonu Bitiren</span>
             <div className="w-9 h-9 rounded-xl bg-purple-600/30 flex items-center justify-center text-purple-300">
               <Sparkles className="w-5 h-5" />
             </div>

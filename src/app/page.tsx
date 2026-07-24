@@ -51,7 +51,7 @@ export default async function HomePage() {
       <section className="relative z-10 pt-16 sm:pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-indigo-300 backdrop-blur-md shadow-xl hover:border-indigo-500/40 transition-all cursor-default animate-fadeIn">
           <Sparkles className="w-4 h-4 text-amber-300 animate-spin-slow" />
-          <span>Yapay Zeka & RPG Destekli Lise Rehberlik ve Kariyer Devrimi</span>
+          <span>Yapay Zeka & Simülasyon Destekli Lise Rehberlik ve Kariyer Devrimi</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight max-w-4xl mx-auto leading-none sm:leading-tight">
@@ -132,7 +132,7 @@ export default async function HomePage() {
 
           <div className="space-y-1">
             <div className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-amber-400">
-              12 Alan
+              6 Alan
             </div>
             <div className="text-xs sm:text-sm font-semibold text-gray-400 uppercase tracking-wider">360° Yaşam Matrisi</div>
           </div>
@@ -170,7 +170,7 @@ export default async function HomePage() {
               <Brain className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-extrabold text-white group-hover:text-indigo-300 transition-colors">
-              RPG Kişilik & Motivasyon Keşfi
+              Simülasyon ile Kişilik & Motivasyon Keşfi
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed">
               8 sahneli "Gizemli Akademi" macerasında verdiğin kararlarla arka planda MBTI boyutları ve Enneagram kanat tiplerini hesaplar.
@@ -187,7 +187,7 @@ export default async function HomePage() {
               <Target className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
-              12 Yaşam Alanı & Değerler Matrisi
+              6 Yaşam Alanı & Değerler Matrisi
             </h3>
             <p className="text-sm text-gray-400 leading-relaxed">
               Akademik, Kariyer, Sağlık, Finansal ve Sosyal hedeflerini 360° yönet. Sürükle-bırak arayüzü ile hayattaki en temel değerlerini sırala.
@@ -275,7 +275,7 @@ export default async function HomePage() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Kariyer Yolculuğuna <span className="text-gradient">ROTA</span> Çiz!
+            Kariyer Yolculuğunu <span className="text-gradient">FutuRoute</span> ile Başlat!
           </h2>
           <p className="text-sm sm:text-base text-gray-300 max-w-xl mx-auto">
             İster öğrenci olarak kişilik tipini keşfet, ister rehber öğretmen olarak öğrencilerinin gelişimini 360 derece takip et.
@@ -313,7 +313,7 @@ export default async function HomePage() {
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
               Kariyerin İçin{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400">
-                ROTA'yı Çiz
+                FutuRoute'u Başlat
               </span>
             </h2>
             <p className="text-sm text-gray-400 max-w-md mx-auto">

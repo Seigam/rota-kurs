@@ -48,10 +48,10 @@ export function Navbar() {
             </div>
             <div>
               <span className="text-lg font-black tracking-tight text-white group-hover:text-indigo-300 transition-colors">
-                <span className="text-gradient">ROTA</span>
+                <span className="text-gradient">FutuRoute</span>
               </span>
               <span className="block text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-                Kariyer Keşif Platformu
+                Hayat Boyu Öğrenme
               </span>
             </div>
           </Link>
@@ -76,6 +76,13 @@ export function Navbar() {
                         }`}
                     >
                       Öğrenci Paneli
+                    </Link>
+                    <Link
+                      href="/student/roadmap"
+                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/roadmap') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
+                        }`}
+                    >
+                      Yol Haritam
                     </Link>
                     <Link
                       href="/student/goals"
@@ -162,3 +169,4 @@ export function Navbar() {
     </header>
   );
 }
+

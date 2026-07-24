@@ -1,0 +1,468 @@
+.roadmapShell {
+  --route-ink: #080a11;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 2%, rgba(99, 102, 241, 0.13), transparent 28rem),
+    radial-gradient(circle at 90% 32%, rgba(16, 185, 129, 0.07), transparent 28rem),
+    linear-gradient(180deg, rgba(11, 13, 20, 0.78), #080a11 62%);
+}
+
+.aurora {
+  position: absolute;
+  z-index: -2;
+  top: 2rem;
+  left: 50%;
+  width: min(84vw, 70rem);
+  height: 32rem;
+  transform: translateX(-50%) rotate(-8deg);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 25% 50%, rgba(129, 140, 248, 0.18), transparent 32%),
+    radial-gradient(circle at 60% 30%, rgba(192, 132, 252, 0.12), transparent 28%),
+    radial-gradient(circle at 75% 70%, rgba(52, 211, 153, 0.1), transparent 28%);
+  filter: blur(48px);
+  animation: auroraDrift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.gridTexture {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.36;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 68%);
+  pointer-events: none;
+}
+
+.hero {
+  position: relative;
+  background:
+    radial-gradient(circle at 82% 35%, rgba(52, 211, 153, 0.13), transparent 23rem),
+    radial-gradient(circle at 25% 5%, rgba(99, 102, 241, 0.16), transparent 26rem),
+    linear-gradient(145deg, rgba(24, 28, 46, 0.92), rgba(11, 13, 23, 0.9));
+  box-shadow: 0 34px 90px -42px rgba(79, 70, 229, 0.5);
+}
+
+.hero::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background:
+    linear-gradient(120deg, transparent 0 56%, rgba(255, 255, 255, 0.028) 56% 56.2%, transparent 56.2%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.11) 0 1px, transparent 1.5px);
+  background-size: auto, 30px 30px;
+  mask-image: linear-gradient(90deg, transparent 20%, black);
+  pointer-events: none;
+}
+
+.heroGradient {
+  color: transparent;
+  background: linear-gradient(115deg, #a5b4fc 8%, #c4b5fd 46%, #6ee7b7 92%);
+  background-clip: text;
+}
+
+.progressOrbit {
+  --roadmap-progress: 0deg;
+  position: relative;
+  display: grid;
+  width: 15rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at center, #121624 57%, transparent 58%),
+    conic-gradient(#6ee7b7 0 var(--roadmap-progress), rgba(255, 255, 255, 0.08) var(--roadmap-progress) 360deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 0 80px rgba(52, 211, 153, 0.08);
+}
+
+.progressOrbit::before,
+.progressOrbit::after {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: inherit;
+  content: '';
+}
+
+.progressOrbit::before {
+  inset: -0.8rem;
+  border-style: dashed;
+  animation: orbitSpin 28s linear infinite;
+}
+
+.progressOrbit::after {
+  inset: 1rem;
+  border-color: rgba(110, 231, 183, 0.12);
+}
+
+.progressCore {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.orbitStar {
+  position: absolute;
+  top: 0.45rem;
+  right: 2.4rem;
+  filter: drop-shadow(0 0 10px rgba(253, 224, 71, 0.5));
+  animation: starPulse 2s ease-in-out infinite;
+}
+
+.routeList {
+  position: relative;
+  display: grid;
+  gap: 1.25rem;
+  list-style: none;
+}
+
+.routeList::before {
+  position: absolute;
+  top: 2rem;
+  bottom: 1rem;
+  left: 1.35rem;
+  width: 2px;
+  content: '';
+  background:
+    linear-gradient(#818cf8 0 24%, #a78bfa 24% 49%, #34d399 49% 75%, rgba(251, 191, 36, 0.25) 75% 100%);
+  box-shadow: 0 0 18px rgba(129, 140, 248, 0.36);
+}
+
+.routeItem {
+  --stage-rgb: 129, 140, 248;
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 1rem;
+  animation: stageReveal 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stage-delay);
+}
+
+.routeItem_violet {
+  --stage-rgb: 167, 139, 250;
+}
+
+.routeItem_emerald {
+  --stage-rgb: 52, 211, 153;
+}
+
+.routeItem_amber {
+  --stage-rgb: 251, 191, 36;
+}
+
+.routeItem_upcoming {
+  opacity: 0.76;
+}
+
+.routeMarker {
+  z-index: 2;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid rgba(var(--stage-rgb), 0.48);
+  border-radius: 1rem;
+  background: rgb(12, 15, 24);
+  box-shadow: 0 0 24px rgba(var(--stage-rgb), 0.14);
+  color: rgb(var(--stage-rgb));
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.routeItem_current .routeMarker {
+  background: rgb(var(--stage-rgb));
+  color: #070910;
+  box-shadow: 0 0 0 5px rgba(var(--stage-rgb), 0.1), 0 0 30px rgba(var(--stage-rgb), 0.26);
+}
+
+.routeItem_completed .routeMarker::after {
+  position: absolute;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #6ee7b7;
+  box-shadow: 0 0 10px #6ee7b7;
+  content: '';
+  transform: translate(1.12rem, -1.12rem);
+}
+
+.stageCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(140deg, rgba(var(--stage-rgb), 0.07), transparent 32%),
+    rgba(20, 24, 38, 0.68);
+  padding: 1.35rem;
+  box-shadow: 0 22px 60px -42px rgba(var(--stage-rgb), 0.45);
+  backdrop-filter: blur(16px);
+  transition: transform 240ms ease, border-color 240ms ease, background-color 240ms ease;
+}
+
+.stageCard::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 0 0 0 999px;
+  background: radial-gradient(circle at top right, rgba(var(--stage-rgb), 0.1), transparent 68%);
+  content: '';
+  pointer-events: none;
+}
+
+.routeItem_current .stageCard {
+  border-color: rgba(var(--stage-rgb), 0.32);
+  box-shadow:
+    0 24px 70px -42px rgba(var(--stage-rgb), 0.64),
+    inset 3px 0 0 rgba(var(--stage-rgb), 0.86);
+}
+
+.stageCard:hover {
+  border-color: rgba(var(--stage-rgb), 0.26);
+  transform: translateY(-2px);
+}
+
+.stageIcon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(var(--stage-rgb), 0.25);
+  border-radius: 1rem;
+  background: rgba(var(--stage-rgb), 0.1);
+  color: rgb(var(--stage-rgb));
+}
+
+.statusPill {
+  display: inline-flex;
+  min-height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  border: 1px solid rgba(var(--stage-rgb), 0.2);
+  border-radius: 999px;
+  background: rgba(var(--stage-rgb), 0.08);
+  padding: 0.35rem 0.65rem;
+  color: rgb(var(--stage-rgb));
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.taskRow {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 0.65rem 0.8rem;
+  color: #cbd5e1;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.taskRow:hover {
+  border-color: rgba(var(--stage-rgb), 0.26);
+  background: rgba(var(--stage-rgb), 0.07);
+  color: white;
+}
+
+.taskRowComplete {
+  color: #94a3b8;
+}
+
+.taskCheck {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(var(--stage-rgb), 0.28);
+  border-radius: 0.55rem;
+  background: rgba(var(--stage-rgb), 0.08);
+  color: rgb(var(--stage-rgb));
+}
+
+.taskRowComplete .taskCheck {
+  border-color: rgba(52, 211, 153, 0.32);
+  background: rgba(52, 211, 153, 0.14);
+  color: #6ee7b7;
+}
+
+.finishLine {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0 0 3.75rem;
+  border: 1px dashed rgba(110, 231, 183, 0.18);
+  border-radius: 1.4rem;
+  background: rgba(16, 185, 129, 0.035);
+  padding: 1rem;
+}
+
+.focusCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(110, 231, 183, 0.18);
+  background:
+    radial-gradient(circle at 100% 0, rgba(52, 211, 153, 0.16), transparent 15rem),
+    linear-gradient(145deg, rgba(19, 40, 40, 0.82), rgba(12, 17, 26, 0.94));
+  box-shadow: 0 25px 70px -42px rgba(52, 211, 153, 0.55);
+}
+
+.focusCard::before {
+  position: absolute;
+  right: -2.5rem;
+  bottom: -3rem;
+  width: 11rem;
+  height: 11rem;
+  border: 1px solid rgba(110, 231, 183, 0.08);
+  border-radius: 999px;
+  content: '';
+  box-shadow:
+    0 0 0 1.5rem rgba(110, 231, 183, 0.025),
+    0 0 0 3rem rgba(110, 231, 183, 0.018);
+}
+
+.focusProgress {
+  height: 100%;
+  min-width: 0.35rem;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34d399, #a7f3d0);
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liveDot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #6ee7b7;
+  box-shadow: 0 0 0 4px rgba(110, 231, 183, 0.08), 0 0 12px rgba(110, 231, 183, 0.6);
+}
+
+.signalBar {
+  height: 100%;
+  min-width: 0.28rem;
+  border-radius: inherit;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.signal_indigo {
+  color: #a5b4fc;
+}
+
+.signal_violet {
+  color: #c4b5fd;
+}
+
+.signal_emerald {
+  color: #6ee7b7;
+}
+
+.signalBar_indigo {
+  background: linear-gradient(90deg, #6366f1, #a5b4fc);
+}
+
+.signalBar_violet {
+  background: linear-gradient(90deg, #8b5cf6, #c4b5fd);
+}
+
+.signalBar_emerald {
+  background: linear-gradient(90deg, #10b981, #6ee7b7);
+}
+
+@keyframes stageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orbitSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes auroraDrift {
+  to {
+    transform: translateX(-50%) rotate(4deg) scale(1.08);
+  }
+}
+
+@keyframes starPulse {
+  50% {
+    transform: scale(1.14) rotate(8deg);
+    opacity: 0.75;
+  }
+}
+
+@media (max-width: 640px) {
+  .progressOrbit {
+    width: 12.5rem;
+  }
+
+  .routeList::before {
+    left: 1rem;
+  }
+
+  .routeItem {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .routeMarker {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+    font-size: 0.58rem;
+  }
+
+  .routeItem_completed .routeMarker::after {
+    transform: translate(0.78rem, -0.78rem);
+  }
+
+  .stageCard {
+    border-radius: 1.3rem;
+    padding: 1rem;
+  }
+
+  .finishLine {
+    margin-left: 2.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .progressOrbit::before,
+  .orbitStar,
+  .routeItem {
+    animation: none;
+  }
+
+  .stageCard,
+  .taskRow,
+  .focusProgress,
+  .signalBar {
+    transition: none;
+  }
+}

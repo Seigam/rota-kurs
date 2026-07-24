@@ -30,7 +30,7 @@ export default async function OnboardingPage() {
             Hoş Geldiniz, <span className="text-gradient">{user.name}</span>!
           </h1>
           <p className="text-sm text-gray-400 max-w-xl mx-auto">
-            RPG temelli kariyer keşif adasına adım atmadan önce sizi ve sosyal destek ağınızı tanıyalım.
+            Kişiselleştirilmiş kariyer keşif adasına adım atmadan önce sizi ve sosyal destek ağınızı tanıyalım.
           </p>
         </div>
 

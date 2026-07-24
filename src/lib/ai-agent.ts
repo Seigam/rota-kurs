@@ -1,5 +1,5 @@
 /**
- * ROTA Platformu - Merkezi AI Agent Servisi
+ * FutuRoute Platformu - Merkezi AI Agent Servisi
  * 
  * Tüm yapay zeka işlemleri (SMART Hedef Üretimi, Eylem Planı Oluşturma,
  * Kişiselleştirilmiş Kurs/Kaynak Önerileri) bu agent mimarisi üzerinden yürütülür.

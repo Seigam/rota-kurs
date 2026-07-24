@@ -70,13 +70,13 @@ export function Navbar() {
                 {session.user.role === 'STUDENT' && (
                   <>
 
-                    {/*<Link
+                    <Link
                       href="/student/roadmap"
-                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/roadmap') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
+                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/roadmap') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
                         }`}
                     >
-                      Yol Haritam
-                    </Link>*/}
+                      Öğrenci Paneli
+                    </Link>
                     <Link
                       href="/student/goals"
                       className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/goals') ? 'text-emerald-400 font-semibold' : 'text-gray-300'

@@ -19,6 +19,7 @@ import {
   Target,
   Telescope,
   Trophy,
+  CalendarDays,
 } from 'lucide-react';
 import styles from './career-roadmap.module.css';
 
@@ -455,6 +456,26 @@ export function CareerRoadmap({ snapshot }: { snapshot: RoadmapSnapshot }) {
           </main>
 
           <aside className="space-y-5 xl:sticky xl:top-24" aria-label="Yol haritası özeti">
+            <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 backdrop-blur-md p-6 text-center shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 mx-auto mb-4 relative z-10">
+                <CalendarDays className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-black text-white relative z-10">Takvim & Planlama</h2>
+              <p className="mt-2 text-xs leading-5 text-slate-400 mb-5 relative z-10">
+                Takvim üzerinde eylemlerini planla, adımlarını takip et ve hedeflerine ulaş.
+              </p>
+              <Link
+                href="/student/goals"
+                className="group flex min-h-12 w-full items-center justify-between rounded-2xl bg-indigo-600 px-4 text-sm font-black text-white transition hover:bg-indigo-500 shadow-xl shadow-indigo-600/20 relative z-10"
+              >
+                Planlamaya Geç
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-white/20 transition-transform group-hover:translate-x-1">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
+            </section>
+
             <section className={`${styles.focusCard} rounded-[28px] p-6`}>
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">

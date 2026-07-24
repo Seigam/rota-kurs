@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Compass, Sparkles, Award, ArrowRight, ArrowLeft, RotateCcw, 
-  CheckCircle2, Shield, Flame, BookOpen, Star, HelpCircle, User, Zap 
+  CheckCircle2, Shield, Flame, BookOpen, Star, HelpCircle, User, Zap, Heart 
 } from 'lucide-react';
 
 interface Choice {
@@ -22,6 +22,7 @@ interface Scene {
   title: string;
   description?: string;
   narrativeText?: string;
+  bgImage?: string | null;
   choices: Choice[];
 }
 
@@ -273,23 +274,61 @@ export function RpgGameEngine() {
     );
   }
 
-  const progressPercent = Math.round(((currentIndex) / scenes.length) * 100);
+  const progressPercent = Math.round((currentIndex / scenes.length) * 100);
+
+  // Kısa başlık ve açıklama ayırıcı yardımcı fonksiyon
+  const parseChoiceText = (fullText: string) => {
+    if (!fullText) return { title: 'Seçenek', desc: '', tag: 'Karar Odaklı' };
+
+    const colonIdx = fullText.indexOf(':');
+    if (colonIdx !== -1) {
+      const title = fullText.substring(0, colonIdx).trim();
+      const desc = fullText.substring(colonIdx + 1).trim();
+      let tag = `${title} Odak`;
+      if (title.toLowerCase().includes('odak')) tag = title;
+      return { title, desc, tag };
+    }
+
+    return { title: fullText, desc: '', tag: 'Karar Odaklı' };
+  };
+
+  const getChoiceIcon = (title: string, index: number) => {
+    const t = title.toLowerCase();
+    if (t.includes('sız') || t.includes('analiz') || t.includes('somut') || t.includes('bilgisizlik')) return <Zap className="w-5 h-5 text-teal-400" />;
+    if (t.includes('tahliye') || t.includes('liderlik') || t.includes('sosyal') || t.includes('fayda')) return <User className="w-5 h-5 text-indigo-400" />;
+    if (t.includes('risk') || t.includes('aksiyon') || t.includes('esnek') || t.includes('tehlike')) return <Flame className="w-5 h-5 text-amber-400" />;
+    if (t.includes('empati') || t.includes('sevgi') || t.includes('huzur')) return <Heart className="w-5 h-5 text-rose-400" />;
+    if (t.includes('özgün') || t.includes('yaratıcı') || t.includes('resim')) return <Sparkles className="w-5 h-5 text-purple-400" />;
+    if (t.includes('plan') || t.includes('dürüstlük') || t.includes('güven')) return <Shield className="w-5 h-5 text-emerald-400" />;
+    
+    const fallbackIcons = [Compass, BookOpen, Star, Award];
+    const Icon = fallbackIcons[index % fallbackIcons.length];
+    return <Icon className="w-5 h-5 text-teal-400" />;
+  };
+
+  const sceneImage = currentScene.bgImage || `/images/rpg/soru${currentIndex + 1}.png`;
+
+  const choiceCount = currentScene.choices.length;
+  let gridColsClass = 'grid-cols-1 md:grid-cols-3 gap-4';
+  if (choiceCount === 2) gridColsClass = 'grid-cols-1 md:grid-cols-2 gap-5';
+  else if (choiceCount === 4) gridColsClass = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
+  else if (choiceCount > 4) gridColsClass = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Top Game Bar */}
-      <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl border border-teal-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xl bg-[#0b101d]/90">
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-xs font-extrabold text-indigo-300">
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-xs font-black text-teal-300 shadow-lg shadow-teal-500/10">
               #{currentScene.sceneNumber}
             </span>
             <div>
-              <div className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
-                {scenario?.title || 'Gizemli Akademi / Keşif Adası'}
+              <div className="text-[11px] font-extrabold text-teal-400 uppercase tracking-widest">
+                {scenario?.title || 'GELECEĞE DÖNÜŞ: ZAMAN YOLCULUĞU'}
               </div>
-              <div className="text-xs font-bold text-white">
-                Sahne {currentIndex + 1} / {scenes.length}
+              <div className="text-xs font-bold text-slate-200">
+                Sahne {currentIndex + 1} / {scenes.length} - {currentScene.title}
               </div>
             </div>
           </div>
@@ -299,22 +338,22 @@ export function RpgGameEngine() {
               <button
                 onClick={handleUndo}
                 disabled={submitting}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs flex items-center gap-1 transition-all"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs flex items-center gap-1 transition-all"
                 title="Son Seçimi Geri Al"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
-            <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-extrabold text-xs">
+            <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs">
               {xp} XP
             </div>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full sm:w-48 bg-black/40 h-2.5 rounded-full overflow-hidden border border-white/5">
+        <div className="w-full sm:w-56 bg-black/50 h-2.5 rounded-full overflow-hidden border border-teal-500/20">
           <div
-            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-teal-500 via-cyan-400 to-indigo-500 h-full rounded-full transition-all duration-500 shadow-sm shadow-teal-400/50"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -324,7 +363,7 @@ export function RpgGameEngine() {
             <button
               onClick={handleUndo}
               disabled={submitting}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+              className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/5"
               title="Son Seçimi Geri Al"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -332,11 +371,11 @@ export function RpgGameEngine() {
             </button>
           )}
 
-          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-extrabold text-xs flex items-center gap-1.5 relative">
-            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+          <div className="px-4 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-xs flex items-center gap-1.5 relative shadow-md">
+            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 animate-pulse" />
             <span>{xp} XP</span>
             {xpAnimation && (
-              <span className="absolute -top-6 right-0 text-amber-300 font-black text-xs animate-bounce bg-black/80 px-2 py-0.5 rounded-md border border-amber-500/40 shadow-lg">
+              <span className="absolute -top-7 right-0 text-amber-300 font-black text-xs bg-black/90 px-2 py-0.5 rounded-md border border-amber-500/50 shadow-xl animate-bounce">
                 {xpAnimation}
               </span>
             )}
@@ -344,64 +383,100 @@ export function RpgGameEngine() {
         </div>
       </div>
 
-      {/* Main Story Box */}
-      <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden space-y-6">
-        {/* Ambient background glow based on scene number */}
-        <div className="absolute -top-32 -right-32 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      {/* Main Story Container Card */}
+      <div className="rounded-3xl border border-teal-500/30 bg-[#0c1322]/95 p-5 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-4 relative z-10 border-b border-white/10 pb-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 flex-shrink-0">
-            {getSceneIcon(currentScene.sceneNumber)}
-          </div>
-          <div>
-            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">
-              Sahne #{currentScene.sceneNumber}
+        {/* Top Image Frame with Sci-Fi HUD Overlays */}
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-teal-500/30 shadow-2xl group max-h-[380px] bg-black/70">
+          {/* Top Left HUD Badge */}
+          <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-950/80 border border-teal-500/50 text-teal-300 font-extrabold text-[11px] tracking-widest backdrop-blur-md shadow-lg">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
+              ACİL DURUM
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {currentScene.title}
-            </h2>
+            <span className="text-[10px] font-bold text-teal-400/90 tracking-widest bg-black/60 px-2.5 py-0.5 rounded-md backdrop-blur-sm w-fit border border-teal-500/20">
+              SEKTÖR: YÖRÜNGE İSTASYONU 0{currentScene.sceneNumber}
+            </span>
           </div>
+
+          {/* Top Right HUD Mission Frame */}
+          <div className="absolute top-4 right-4 z-20 hidden sm:flex flex-col items-end pointer-events-none">
+            <div className="px-3 py-1.5 rounded-lg bg-black/75 border border-cyan-500/40 text-cyan-300 font-bold text-[10px] tracking-wider backdrop-blur-md shadow-md text-right">
+              MISSION: &quot;STELLAR CARTOGRAPHY&quot; - SECTOR 0{currentScene.sceneNumber}
+              <div className="text-[8px] text-cyan-400/70 font-mono tracking-widest uppercase mt-0.5">
+                FUTUROUTE 7045 - INTERFACE VER. 4.2
+              </div>
+            </div>
+          </div>
+
+          {/* Scene Background Image */}
+          <img
+            src={sceneImage}
+            alt={currentScene.title}
+            className="w-full h-full object-cover object-center max-h-[380px] transition-transform duration-700 group-hover:scale-105"
+          />
+
+          {/* Gradient Overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1322] via-transparent to-black/30 pointer-events-none" />
         </div>
 
-        {/* Story Text Box */}
-        <div className="bg-black/40 p-6 sm:p-8 rounded-2xl border border-white/5 relative z-10 shadow-inner">
-          <p className="text-base sm:text-lg text-gray-200 leading-relaxed font-normal whitespace-pre-line">
+        {/* Scene Title & Narrative Description */}
+        <div className="text-center space-y-3 pt-2 max-w-3xl mx-auto px-2">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+            {currentScene.title}
+          </h2>
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal whitespace-pre-line max-w-2xl mx-auto">
             {currentScene.narrativeText || currentScene.description || ''}
           </p>
         </div>
+      </div>
 
-        {/* Choices Section */}
-        <div className="space-y-3.5 pt-2 relative z-10">
-          <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
-            Karar Anı: Nasıl Bir Yol İzleyeceksiniz?
-          </label>
+      {/* Choice Options Cards Grid (Placed below main card) */}
+      <div className={`grid ${gridColsClass}`}>
+        {currentScene.choices.map((choice, idx) => {
+          const fullText = choice.choiceText || choice.text || '';
+          const { title, desc, tag } = parseChoiceText(fullText);
+          const icon = getChoiceIcon(title, idx);
 
-          <div className="grid grid-cols-1 gap-3.5">
-            {currentScene.choices.map((choice, idx) => (
-              <button
-                key={choice.id}
-                type="button"
-                disabled={submitting}
-                onClick={() => handleSelectChoice(choice.id, currentScene.id)}
-                className="glass-card p-5 rounded-2xl border border-white/10 hover:border-indigo-500/50 text-left transition-all flex items-center justify-between gap-4 group hover:bg-gradient-to-r hover:from-indigo-600/20 hover:to-purple-600/20 disabled:opacity-50"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-8 h-8 rounded-xl bg-white/5 group-hover:bg-indigo-500/30 flex items-center justify-center text-xs font-extrabold text-gray-400 group-hover:text-white transition-colors flex-shrink-0">
-                    {String.fromCharCode(65 + idx)}
-                  </span>
-                  <span className="text-sm sm:text-base font-semibold text-gray-200 group-hover:text-white transition-colors leading-snug">
-                    {choice.choiceText || choice.text || ''}
-                  </span>
+          return (
+            <button
+              key={choice.id}
+              type="button"
+              disabled={submitting}
+              onClick={() => handleSelectChoice(choice.id, currentScene.id)}
+              className="bg-[#0f1728]/95 hover:bg-[#162138] border border-teal-500/20 hover:border-teal-400/60 rounded-2xl p-5 text-left transition-all duration-300 flex flex-col justify-between h-full group cursor-pointer shadow-xl hover:shadow-teal-500/10 disabled:opacity-50 relative overflow-hidden"
+            >
+              {/* Top Row: Icon & Short Title */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/30 group-hover:bg-teal-500/20 group-hover:border-teal-400 transition-colors flex-shrink-0">
+                    {icon}
+                  </div>
+                  <h4 className="text-base font-extrabold text-white group-hover:text-teal-300 transition-colors leading-tight">
+                    {title}
+                  </h4>
                 </div>
 
-                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-indigo-600 flex items-center justify-center text-gray-400 group-hover:text-white transition-all flex-shrink-0 group-hover:translate-x-1">
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+                {/* Description Text */}
+                {desc && (
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pt-1 font-normal">
+                    {desc}
+                  </p>
+                )}
+              </div>
+
+              {/* Bottom Focus Tag Badge */}
+              <div className="pt-4 mt-auto">
+                <span className="px-3.5 py-1 text-[11px] font-semibold rounded-full border border-purple-500/40 bg-purple-950/40 text-purple-300 tracking-wide inline-block w-fit group-hover:border-purple-400 group-hover:text-purple-200 transition-colors">
+                  {tag}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

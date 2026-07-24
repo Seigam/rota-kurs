@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
-
-export interface CourseRecommendation {
-  id: string;
-  title: string;
-  platform: string;
-  level: string;
-  duration: string;
-  relatedStep: string;
-  reason: string;
-  url: string;
-}
+import { runCourseRecommendationAgent, CourseRecommendation } from '@/lib/ai-agent';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,22 +19,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-    if (groqApiKey) {
-      try {
-        const aiRecs = await generateCourseRecsWithGroq(
-          groqApiKey,
-          domain,
-          domainLabel,
-          inProgressSteps,
-          todoSteps
-        );
-        if (aiRecs && aiRecs.length > 0) {
-          return NextResponse.json({ recommendations: aiRecs });
-        }
-      } catch (err) {
-        console.error('Groq course recommendation error, fallback applied:', err);
+    try {
+      const aiRecs = await runCourseRecommendationAgent(
+        domain,
+        domainLabel,
+        inProgressSteps,
+        todoSteps
+      );
+      if (aiRecs && aiRecs.length > 0) {
+        return NextResponse.json({ recommendations: aiRecs });
       }
+    } catch (err) {
+      console.error('AI Agent course recommendation error, fallback applied:', err);
     }
 
     const fallbackRecs = generateFallbackRecommendations(
@@ -61,93 +44,6 @@ export async function POST(request: NextRequest) {
     console.error('POST course-recommendations error:', err);
     return NextResponse.json({ error: 'Kurs önerileri alınırken hata oluştu' }, { status: 500 });
   }
-}
-
-async function generateCourseRecsWithGroq(
-  apiKey: string,
-  domain: string,
-  domainLabel: string,
-  inProgressSteps: string[],
-  todoSteps: string[]
-): Promise<CourseRecommendation[] | null> {
-  const stepsPrompt = [
-    inProgressSteps.length > 0
-      ? `Yapılacaklar (Şu an üzerinde çalıştıkları): ${inProgressSteps.join(', ')}`
-      : '',
-    todoSteps.length > 0
-      ? `Plan Adımları (Yakında başlayacakları): ${todoSteps.join(', ')}`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const prompt = `Sen Türkiye'deki lise ve üniversite öğrencilerine kariyer ve kişisel gelişim rehberliği yapan uzman bir eğitim danışmanısın.
-Öğrencinin ilgilendiği Yaşam Alanı: "${domainLabel || domain}"
-Öğrencinin Kanban Panosundaki Görevleri:
-${stepsPrompt}
-
-Bu öğrencinin özellikle "Yapılacaklar" listesinde yer alan hedeflerini tamamlamasına doğrudan katkı sağlayacak, Türkiye'den veya dünyadan erişilebilecek (BTK Akademi, Udemy, YouTube Eğitim Serileri, Coursera, MEB EBA, Khan Academy, freeCodeCamp vb.) TAM OLARAK 3 adet pratik, nitelikli kurs veya kaynak önerisi oluştur.
-
-Lütfen yanıtını SADECE geçerli bir JSON dizisi olarak döndür. JSON yapısı şu şekilde olmalıdır:
-[
-  {
-    "title": "Kurs veya Kaynak Başlığı",
-    "platform": "Platform Adı (örn: BTK Akademi • Ücretsiz Sertifikalı)",
-    "level": "Seviye (örn: Başlangıç / Orta Seviye)",
-    "duration": "Tahmini Süre (örn: 10 Saat)",
-    "relatedStep": "Öğrencinin listedeki hangi göreviyle ilişkili olduğu",
-    "reason": "Bu kursun öğrencinin görevini tamamlamasına neden fayda sağlayacağını anlatan 1-2 cümlelik motive edici açıklama",
-    "url": "https://www.btkakademi.gov.tr"
-  }
-]
-Başka hiçbir ek metin, markdown açıklama yazma, sadece JSON dizisini döndür.`;
-
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.7,
-      max_tokens: 1200,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Sen yalnızca geçerli bir JSON dizisi döndüren ve asla markdown blokları veya sohbet metni yazmayan bir asistansın.',
-        },
-        { role: 'user', content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Groq API returned status ${response.status}`);
-  }
-
-  const data = await response.json();
-  const rawContent = String(data?.choices?.[0]?.message?.content || '').trim();
-  const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
-  const parsed = JSON.parse(cleaned);
-
-  if (Array.isArray(parsed) && parsed.length > 0) {
-    return parsed.map((item, index) => ({
-      id: `ai_course_${index + 1}_${Date.now()}`,
-      title: String(item.title || 'Gelişim Rehberi ve Uygulamalı Kurs'),
-      platform: String(item.platform || 'BTK Akademi & YouTube'),
-      level: String(item.level || 'Her Seviye'),
-      duration: String(item.duration || 'Esnek Hızlı Eğitim'),
-      relatedStep: String(item.relatedStep || inProgressSteps[0] || todoSteps[0] || 'Genel Hedefin'),
-      reason: String(
-        item.reason || 'Hedefini daha hızlı ve sağlam adımlarla gerçekleştirmeni sağlar.'
-      ),
-      url: String(item.url || 'https://www.btkakademi.gov.tr'),
-    }));
-  }
-
-  return null;
 }
 
 function generateFallbackRecommendations(

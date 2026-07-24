@@ -7,7 +7,7 @@ import { Role } from '@prisma/client';
 import { 
   Compass, Sparkles, ArrowRight, Zap, 
   Brain, Target, Users, Star, Rocket,
-  ChevronRight, HeartHandshake, Layers, ChevronDown
+  ChevronRight, HeartHandshake, Layers, ChevronDown, BookOpen
 } from 'lucide-react';
 import { LandingLoginSection } from '@/components/landing/landing-login-section';
 
@@ -76,6 +76,14 @@ export default async function HomePage() {
             <span>Hemen Başlat / Giriş Yap</span>
             <ChevronDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
           </a>
+
+          <Link
+            href="/mikro-yeterlilikler"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-teal-500/20 via-indigo-500/20 to-purple-500/20 hover:from-teal-500/30 hover:to-purple-500/30 text-teal-300 font-extrabold text-base border border-teal-500/40 hover:border-teal-400 transition-all flex items-center justify-center gap-2.5 shadow-xl"
+          >
+            <BookOpen className="w-5 h-5 text-teal-400" />
+            <span>Mikro Yeterlilikler Kataloğu 🎓</span>
+          </Link>
 
           <Link
             href="/register"

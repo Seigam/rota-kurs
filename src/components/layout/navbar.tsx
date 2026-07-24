@@ -34,8 +34,7 @@ export function Navbar() {
     }
   };
 
-  // Landing page'de navbar'ı gizle
-  if (pathname === '/') return null;
+
 
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-white/10">

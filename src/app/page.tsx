@@ -1,9 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
 import { 
   Compass, Sparkles, ArrowRight, Zap, 
   Brain, Target, Users, Star, Rocket,
@@ -12,33 +7,7 @@ import {
 import { LandingLoginSection } from '@/components/landing/landing-login-section';
 
 export default async function HomePage() {
-  // If already logged in, smart-redirect to correct page
-  const session = await getServerSession(authOptions);
-  if (session?.user) {
-    const { role, id } = session.user;
-    if (role === Role.TEACHER) redirect('/teacher/dashboard');
-    if (role === Role.ADMIN) redirect('/admin/dashboard');
-    if (role === Role.STUDENT) {
-      const profile = await prisma.profile.findUnique({
-        where: { userId: id },
-        include: {
-          personalityResult: true,
-          valueRankings: { take: 1 },
-          profileRankings: { take: 1 },
-          lifeDomainEntries: { take: 1 },
-        },
-      });
-      if (!profile || !profile.completedOnboarding) redirect('/student/onboarding');
 
-      const hasValues =
-        (profile.valueRankings && profile.valueRankings.length > 0) ||
-        (profile.profileRankings && profile.profileRankings.length > 0);
-      if (!hasValues) redirect('/student/values');
-      if (!profile.lifeDomainEntries || profile.lifeDomainEntries.length === 0) redirect('/student/domains');
-      if (!profile.personalityResult) redirect('/rpg/test');
-      redirect('/student/dashboard');
-    }
-  }
 
   return (
     <div className="flex-1 flex flex-col relative overflow-hidden bg-black text-white selection:bg-indigo-500 selection:text-white">

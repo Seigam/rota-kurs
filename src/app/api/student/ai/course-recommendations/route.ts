@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { runCourseRecommendationAgent, CourseRecommendation } from '@/lib/ai-agent';
+import { buildCatalogContext } from '@/lib/catalog-query';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +22,26 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Öğrenci profil bilgisini al (katalog filtrelemesi için)
+      const profile = await prisma.profile.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true, grade: true },
+      });
+
+      // Platform kataloğundan ilgili ders ve mikroyeterlilikleri getir
+      const catalogContext = await buildCatalogContext({
+        grade: profile?.grade,
+        domain,
+        profileId: profile?.id,
+      });
+
       const aiRecs = await runCourseRecommendationAgent(
         domain,
         domainLabel,
         inProgressSteps,
-        todoSteps
+        todoSteps,
+        session.user.id,
+        catalogContext
       );
       if (aiRecs && aiRecs.length > 0) {
         return NextResponse.json({ recommendations: aiRecs });

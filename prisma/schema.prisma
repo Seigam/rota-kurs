@@ -124,6 +124,7 @@ model Profile {
   counselorNotes   CounselorNote[] @relation("StudentReceivedNotes")
   recommendations  Recommendation[]
   personalityResult PersonalityResult?
+  courseApprovals  CourseApprovalRequest[]
 
   @@map("StudentProfile")
 }
@@ -281,15 +282,17 @@ model LifeDomainEntry {
 }
 
 model DomainPlan {
-  id          String     @id @default(uuid())
-  studentId   String
-  domain      String
-  columnType  String
-  contentText String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(uuid())
+  studentId     String
+  domain        String
+  columnType    String
+  contentText   String
+  dueDate       DateTime?
+  scheduledDate DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  student     Profile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student       Profile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 model GoalPlanItem {
@@ -408,4 +411,26 @@ model CounselorNote {
   student     Profile @relation("StudentReceivedNotes", fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("TeacherNote")
+}
+
+model CourseApprovalRequest {
+  id             String    @id @default(uuid())
+  studentId      String
+  courseTitle    String
+  coursePlatform String    @default("Rota Kurs Platformu")
+  courseLevel    String?
+  courseDuration String?
+  courseUrl      String?
+  courseReason   String?   // Öğrencinin neden seçtiği
+  domain         String?
+  // status: PENDING | APPROVED | REJECTED
+  status         String    @default("PENDING")
+  counselorNote  String?   // Rehberin açıklaması
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  student        Profile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("CourseApprovalRequest")
 }

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { AnalyticsCharts } from '@/components/admin/analytics-charts';
+import { CourseApprovalPanel } from '@/components/teacher/course-approval-panel';
 import { 
   ShieldAlert, Users, BookOpen, Sparkles, Plus, Trash2, 
-  CheckCircle2, AlertCircle, BarChart2, Shield, RefreshCw, ExternalLink 
+  CheckCircle2, AlertCircle, BarChart2, Shield, RefreshCw, ExternalLink, ClipboardCheck
 } from 'lucide-react';
 
 interface StatsData {
@@ -39,7 +40,7 @@ interface UserItem {
 
 export function AdminDashboardClient() {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'PROGRAMS' | 'USERS'>('ANALYTICS');
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'PROGRAMS' | 'USERS' | 'APPROVALS'>('ANALYTICS');
   const [stats, setStats] = useState<StatsData | null>(null);
   const [charts, setCharts] = useState<{ mbti: any[]; enneagram: any[]; careers: any[] }>({ mbti: [], enneagram: [], careers: [] });
   const [programs, setPrograms] = useState<ProgramItem[]>([]);
@@ -291,7 +292,17 @@ export function AdminDashboardClient() {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Kullanıcı & Rol Yetkilendirme ({users.length})</span>
+          <span>Kullanıcı &amp; Rol Yetkilendirme ({users.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('APPROVALS')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'APPROVALS' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'
+          }`}
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          <span>Ders Onay Talepleri</span>
         </button>
       </div>
 
@@ -461,6 +472,11 @@ export function AdminDashboardClient() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Tab 4: Ders Onay Talepleri */}
+      {activeTab === 'APPROVALS' && (
+        <CourseApprovalPanel />
       )}
     </div>
   );

@@ -94,12 +94,17 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
         setError(data.error || 'Bilgiler kaydedilirken hata oluştu.');
         setLoading(false);
       } else {
-        setSuccessMsg(data.message || 'Profil başarıyla kaydedildi! Değerler sıralamasına yönlendiriliyorsunuz...');
+        setSuccessMsg(
+          data.redirectUrl === '/student/programs'
+            ? 'Profil kaydedildi! 🎉 Size özel ders önerileri hazırlanıyor...'
+            : (data.message || 'Profil başarıyla kaydedildi! Değerler sıralamasına yönlendiriliyorsunuz...')
+        );
         setTimeout(() => {
-          router.push('/student/values');
+          router.push(data.redirectUrl || '/student/values');
           router.refresh();
         }, 1500);
       }
+
     } catch (err) {
       setError('Sunucu bağlantısı sırasında hata oluştu.');
       setLoading(false);

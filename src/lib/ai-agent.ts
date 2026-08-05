@@ -121,31 +121,149 @@ export async function runAgentTask<T = any>(options: AgentTaskOptions): Promise<
   }
 }
 
-/**
- * SMART Hedef Üretim Agent'ı: Öğrencinin isteğini 3 adet somut SMART hedefe dönüştürür.
- */
-export async function runSmartGoalsAgent(domain: string, wishText: string): Promise<string[]> {
-  const systemPrompt = `Sen Türkiye'deki lise ve üniversite öğrencilerine rehberlik eden uzman bir kariyer ve gelişim koçusun.
-Görevin, öğrencinin hayallerini 3 adet SMART hedefe dönüştürmektir.
+import { prisma } from '@/lib/prisma';
 
-KURAL:
-- Düşünme sürecini (thinking process) yazma veya çok kısa tut.
-- SADECE geçerli bir JSON dizisi döndür. Asla ek metin veya markdown yazma.
+export interface StudentContext {
+  grade?: number;
+  schoolName?: string;
+  targetCareer?: string;
+  hobbies?: string;
+  favoriteSubjects?: string;
+  mbtiType?: string;
+  enneagramType?: string | number;
+  enneagramWing?: string | number;
+  personalitySummary?: string;
+  strengths?: string;
+  recommendedTrack?: string;
+  topValues?: string[];
+}
+
+export async function fetchStudentContext(userId: string): Promise<StudentContext | undefined> {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: {
+        personalityResult: true,
+        valueRankings: {
+          include: { valueItem: true },
+          orderBy: { rankOrder: 'asc' },
+          take: 5,
+        },
+      },
+    });
+
+    if (!profile) return undefined;
+
+    const topValues = profile.valueRankings
+      ?.map((vr: any) => vr.valueItem?.title || vr.valueItemId)
+      .filter(Boolean);
+
+    return {
+      grade: profile.grade ?? undefined,
+      schoolName: profile.schoolName ?? undefined,
+      targetCareer: profile.targetCareer ?? undefined,
+      hobbies: profile.hobbies ?? undefined,
+      favoriteSubjects: profile.favoriteSubjects ?? undefined,
+      mbtiType: profile.personalityResult?.mbtiType ?? undefined,
+      enneagramType: profile.personalityResult?.dominantEnneagram || profile.personalityResult?.enneagramType || undefined,
+      enneagramWing: profile.personalityResult?.wingEnneagram || profile.personalityResult?.enneagramWing || undefined,
+      personalitySummary: profile.personalityResult?.summary ?? undefined,
+      strengths: profile.personalityResult?.strengths ?? undefined,
+      recommendedTrack: profile.personalityResult?.recommendedTrack ?? undefined,
+      topValues: topValues?.length ? topValues : undefined,
+    };
+  } catch (err) {
+    console.error('fetchStudentContext hatası:', err);
+    return undefined;
+  }
+}
+
+export function formatStudentContextPrompt(studentContext?: StudentContext): string {
+  if (!studentContext) return '';
+
+  const parts: string[] = [];
+
+  if (studentContext.grade) parts.push(`- Sınıf Seviyesi: ${studentContext.grade}. Sınıf`);
+  if (studentContext.targetCareer) parts.push(`- Hedef Kariyer / Meslek: ${studentContext.targetCareer}`);
+  if (studentContext.favoriteSubjects) parts.push(`- Sevdiği Dersler: ${studentContext.favoriteSubjects}`);
+  if (studentContext.hobbies) parts.push(`- İlgi Alanları & Hobiler: ${studentContext.hobbies}`);
+
+  if (studentContext.mbtiType || studentContext.enneagramType) {
+    let personalityStr = '- Kişilik Testi Analizi (Keşif Adası / RPG): ';
+    if (studentContext.mbtiType) personalityStr += `MBTI Tipi: ${studentContext.mbtiType} `;
+    if (studentContext.enneagramType) {
+      personalityStr += `| Enneagram Tipi: ${studentContext.enneagramType}`;
+      if (studentContext.enneagramWing) personalityStr += `w${studentContext.enneagramWing}`;
+    }
+    parts.push(personalityStr);
+  }
+
+  if (studentContext.personalitySummary) {
+    parts.push(`- Kişilik Mizacı ve Karakter Özeti: "${studentContext.personalitySummary}"`);
+  }
+  if (studentContext.strengths) {
+    parts.push(`- Güçlü Yönleri: ${studentContext.strengths}`);
+  }
+  if (studentContext.recommendedTrack) {
+    parts.push(`- Önerilen Çalışma Yolu: ${studentContext.recommendedTrack}`);
+  }
+
+  if (studentContext.topValues && studentContext.topValues.length > 0) {
+    parts.push(`- Önem Verdiği Temel Değerler: ${studentContext.topValues.join(', ')}`);
+  }
+
+  if (parts.length === 0) return '';
+
+  return `\n\n--- ÖĞRENCİ PROFIİLİ VE KİŞİLİK ANALİZİ ---\n${parts.join('\n')}\nÖNEMLİ: Yukarıdaki kişilik yapısını (MBTI/Enneagram), öğrenme mizaçlarını ve kişisel değerlerini göz önüne alarak, doğrudan bu öğrencinin karakterine ve seviyesine özel uyarlanmış öneriler üret.`;
+}
+
+/**
+ * Gelişim ve Yol Haritası Hedef Ajanı:
+ * Öğrencinin genel hayalini; mizaç, kişilik analizi (MBTI/Enneagram), değerler ve sınıf seviyesine uygun 3 somut gelişim hedefine dönüştürür.
+ */
+export async function runSmartGoalsAgent(
+  domain: string,
+  wishText: string,
+  userIdOrContext?: string | StudentContext
+): Promise<string[]> {
+  let contextObj: StudentContext | undefined;
+  if (typeof userIdOrContext === 'string') {
+    contextObj = await fetchStudentContext(userIdOrContext);
+  } else {
+    contextObj = userIdOrContext;
+  }
+
+  const contextPrompt = formatStudentContextPrompt(contextObj);
+
+  const systemPrompt = `Sen Türkiye'deki lise ve üniversite gençlerine psikolojik, pedagojik ve kariyer gelişim danışmanlığı sunan kıdemli bir Uzman Öğrenci ve Kariyer Danışmanısın.
+
+GÖREVİN:
+Öğrencinin ifade ettiği genel arzuları ve hayalleri; öğrencinin akademik arka planına, kişilik mizaç yapısına (MBTI ve Enneagram analizi), ilgi alanlarına ve değerler sıralamasına tam uyumlu, somut, net, zamana bağlı ve motive edici 3 adet gelişim hedefine dönüştürmektir.
+
+UZMANLIK VE REHBERLİK İLKELERİN:
+1. "SMART hedef" veya jargon terimler kullanma. Hedefler son derece anlaşılır, ilham verici ve net Türkçe ile kaleme alınmalıdır.
+2. Öğrencinin mizaç özelliklerini (Analitik, Sosyal, Uygulamacı, Araştırmacı vb.) dikkate alarak onun içsel motivasyonunu artıracak özgün ifadeler seç.
+3. Her hedef seçeneği net bir zaman dilimi (örneğin: "önümüzdeki 3 ay boyunca", "bu dönem sonuna kadar"), somut bir çalışma sıklığı veya sayısal ölçüt (örneğin: "haftada 4 saat", "2 portfolyo projesi") ve açık bir çıktı içermelidir.
+4. Sınıf seviyesine uygun gerçekçi beklentiler belirle.
+
+ÇIKTI KURALI:
+- Düşünme sürecini (thinking process) yanıta yazma.
+- SADECE ve SADECE geçerli bir JSON dizisi (Array of strings) döndür. Asla açıklama metni veya markdown kod bloğu ekleme.
 Örnek Format:
 [
-  "Önümüzdeki 3 ay boyunca haftada 5 saat çalışarak Python dilinde 2 pratik proje tamamlamak.",
-  "Bu dönem sonuna kadar matematik netlerini haftalık etütlerle 4 net artırmak.",
-  "6 ay içerisinde hedef yabancı dilde B2 seviyesine ulaşarak 3 kitap okumak."
+  "Önümüzdeki 3 ay boyunca haftada 5 saat odaklı çalışarak Python dilinde 2 pratik portfolyo projesi tamamlamak.",
+  "Bu dönem sonına kadar matematik netlerimi haftalık branş etütleriyle kademeli olarak 4 net artırmak.",
+  "6 ay içerisinde hedef yabancı dilde B2 seviyesine ulaşarak 3 tematik eser okumak."
 ]`;
 
-  const userPrompt = `Öğrencinin Yaşam Alanı: ${domain}
-Öğrencinin İsteği / Hayali: "${wishText}"
+  const userPrompt = `Öğrencinin Odaklandığı Yaşam Alanı: ${domain}
+Öğrencinin İfade Ettiği Arzu / Hayal: "${wishText}"${contextPrompt}
 
-Bu istek için tam olarak 3 adet motive edici, ölçülebilir SMART hedef seçeneği oluştur.
+Bu istek ve öğrenci kişilik profili için tam olarak 3 adet motive edici, net, ölçülebilir ve öğrencinin karakter yapısına uygun gelişim hedefi seçeneği oluştur.
 SADECE ["hedef 1", "hedef 2", "hedef 3"] biçiminde geçerli bir JSON dizisi döndür.`;
 
   const result = await runAgentTask<string[]>({
-    taskName: 'SmartGoalsPlannerAgent',
+    taskName: 'GoalsPlannerAgent',
     systemPrompt,
     userPrompt,
     temperature: 0.7,
@@ -156,30 +274,56 @@ SADECE ["hedef 1", "hedef 2", "hedef 3"] biçiminde geçerli bir JSON dizisi dö
     return result.map((item) => String(item));
   }
 
-  throw new Error('SmartGoalsPlannerAgent geçerli bir hedef dizisi üretemedi.');
+  throw new Error('GoalsPlannerAgent geçerli bir hedef dizisi üretemedi.');
 }
 
 /**
- * Eylem Planı Agent'ı: Seçilen SMART hedef için 4 adımlı kronolojik eylem planı üretir.
+ * Eylem ve Rutin Planlayıcı Ajan:
+ * Seçilen gelişim hedefi için öğrencinin kişiliğine ve mizaç yapısına uygun 4 adımlı kronolojik eylem planı üretir.
  */
-export async function runActionPlanAgent(domain: string, selectedGoal: string): Promise<ActionStep[]> {
-  const systemPrompt = `Sen uzman bir öğrenci koçusun. Öğrencinin seçtiği SMART hedefe ulaşması için 4 adımlı somut ve kronolojik bir eylem planı hazırlarsın.
+export async function runActionPlanAgent(
+  domain: string,
+  selectedGoal: string,
+  userIdOrContext?: string | StudentContext
+): Promise<ActionStep[]> {
+  let contextObj: StudentContext | undefined;
+  if (typeof userIdOrContext === 'string') {
+    contextObj = await fetchStudentContext(userIdOrContext);
+  } else {
+    contextObj = userIdOrContext;
+  }
 
-KURAL:
-- Düşünme sürecini (thinking process) yazma veya çok kısa tut.
-- SADECE geçerli bir JSON dizisi döndür. Asla ek metin veya açıklama yazma.
+  const contextPrompt = formatStudentContextPrompt(contextObj);
+
+  const systemPrompt = `Sen gençlerin hedeflerine ulaşmasında alışkanlık kazandırma, zaman yönetimi ve öğrenme stratejileri uzmanı olan Kıdemli Öğrenci Koçusun.
+
+GÖREVİN:
+Öğrencinin seçtiği gelişim hedefini, onun öğrenme stiline, mizaç özelliklerine (MBTI/Enneagram) ve seviyesine uygun 4 adımlı, mantıksal ve kronolojik bir uygulama planına bölmektir.
+
+UZMANLIK VE REHBERLİK İLKELERİN:
+1. Adımlar sırasıyla şu mantıksal Akışı izlemelidir:
+   - 1. Adım: Ön Hazırlık & Planlama (Kaynak tespiti, takvim oluşturma, altyapı hazırlığı)
+   - 2. Adım: İlk Eylem & Rutin Kurma (Haftalık çalışma alışkanlığı başlatma)
+   - 3. Adım: Derinleşme & Pratik (Konu taramaları, proje geliştirme, eksik giderme)
+   - 4. Adım: Ölçüm, Değerlendirme & Tamamlama (Çıktıyı test etme, başarıyı tescilleme)
+2. Öğrencinin kişilik analizinde öne çıkan güçlü yönlerini adımlara yansıt.
+3. Metinler net, heyecan verici ve öğrenciyi doğrudan eyleme geçiren bir dille yazılmalıdır.
+
+ÇIKTI KURALI:
+- Düşünme sürecini yanıta dahil etme.
+- SADECE ve SADECE geçerli bir JSON dizisi döndür. Asla ek açıklama yapma.
 Örnek Format:
 [
-  { "id": "step_1", "text": "Ön Hazırlık: Gerekli kaynakları ve haftalık takvimi oluşturmak." },
-  { "id": "step_2", "text": "İlk Adım (1. Hafta): Odaklı çalışma rutinine başlamak." },
-  { "id": "step_3", "text": "Gelişim ve Pratik (2.-4. Hafta): İlerlemeyi kaydetmek ve eksikleri gidermek." },
-  { "id": "step_4", "text": "Değerlendirme ve Tamamlama: Hedef çıktısını kontrol edip tamamlamak." }
+  { "id": "step_1", "text": "Ön Hazırlık: Çalışma kaynaklarını ve haftalık odak takvimini netleştirmek." },
+  { "id": "step_2", "text": "İlk Eylem (1. Hafta): Odaklı çalışma rutinine düzenli periyotlarla başlamak." },
+  { "id": "step_3", "text": "Gelişim ve Pratik (2.-4. Hafta): İlerlemeyi kaydedip eksik noktaları pekiştirmek." },
+  { "id": "step_4", "text": "Ölçüm ve Tamamlama: Hedef çıktısını değerlendirip başarıyı tescil etmek." }
 ]`;
 
-  const userPrompt = `Yaşam Alanı: ${domain}
-Seçilen SMART Hedef: "${selectedGoal}"
+  const userPrompt = `Odak Yaşam Alanı: ${domain}
+Seçilen Gelişim Hedefi: "${selectedGoal}"${contextPrompt}
 
-Bu hedefe ulaşmak için 4 adımlı kronolojik eylem planı oluştur. Her adım somut ve lise/üniversite öğrencisi için uygulanabilir olsun.
+Bu hedefe ulaşmak için öğrenciye özel 4 adımlı kronolojik eylem planı oluştur. Her adım somut, motive edici ve uygulanabilir olsun.
 SADECE JSON dizisini döndür.`;
 
   const result = await runAgentTask<Array<{ id?: string; text: string }>>({
@@ -201,49 +345,81 @@ SADECE JSON dizisini döndür.`;
 }
 
 /**
- * Kurs ve Kaynak Önerileri Agent'ı: Öğrencinin Kanban panosundaki adımlara özel 3 adet kurs/kaynak önerir.
+ * Kişiselleştirilmiş Eğitim ve Kaynak Öneri Ajanı:
+ * Platformun gerçek ders ve mikroyeterlilik kataloğundan öğrencinin
+ * gelişim adımlarına, kişilik yapısına ve hedef alanına en uygun
+ * kaynakları seçip eşleştirme gerekçesiyle birlikte sunar.
  */
 export async function runCourseRecommendationAgent(
   domain: string,
   domainLabel: string,
   inProgressSteps: string[],
-  todoSteps: string[]
+  todoSteps: string[],
+  userIdOrContext?: string | StudentContext,
+  catalogContext?: string
 ): Promise<CourseRecommendation[]> {
+  let contextObj: StudentContext | undefined;
+  if (typeof userIdOrContext === 'string') {
+    contextObj = await fetchStudentContext(userIdOrContext);
+  } else {
+    contextObj = userIdOrContext;
+  }
+
+  const contextPrompt = formatStudentContextPrompt(contextObj);
+
   const stepsPrompt = [
     inProgressSteps.length > 0
-      ? `Yapılacaklar (Şu an üzerinde çalıştıkları): ${inProgressSteps.join(', ')}`
+      ? `Şu An Odaklanılan Adımlar: ${inProgressSteps.join(', ')}`
       : '',
     todoSteps.length > 0
-      ? `Plan Adımları (Yakında başlayacakları): ${todoSteps.join(', ')}`
+      ? `Gelecek Plan Adımları: ${todoSteps.join(', ')}`
       : '',
   ]
     .filter(Boolean)
     .join('\n');
 
-  const systemPrompt = `Sen Türkiye'deki öğrencilere kariyer ve kişisel gelişim rehberliği yapan uzman bir eğitim danışmanısın.
-Öğrencinin hedeflerine doğrudan katkı sağlayacak pratik, ücretsiz veya erişilebilir 3 adet kurs/kaynak önerisi sunarsın.
+  const hasCatalog = catalogContext && catalogContext.trim().length > 0;
 
-KURAL:
-- Düşünme sürecini (thinking process) yazma veya çok kısa tut.
-- SADECE geçerli bir JSON dizisi döndür. Başka hiçbir açıklama yazma.
+  const systemPrompt = `Sen öğrencilerin ilgi alanları, kişilik yapıları ve öğrenme gereksinimlerine göre en doğru eğitim kaynaklarını eşleştiren Kıdemli Eğitim Teknolojileri ve Kaynak Danışmanısın.
+
+GÖREVİN:
+${hasCatalog
+  ? `Sana verilen platform ders ve mikroyeterlilik kataloğundan, öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) en uygun kaynakları seç ve eşleştirme gerekçesini yaz. Katalogda yer alan dersleri önceliklendir; yalnızca hiçbir ders uygun değilse dışarıdan öneri yapabilirsin.`
+  : `Öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) doğrudan katkı sunacak pratik, nitelikli ve erişilebilir eğitim/kurs kaynakları öner.`
+}
+
+UZMANLIK VE REHBERLİK İLKELERİN:
+1. Önerilen her kaynak için "reason" alanında, kaynağın öğrencinin mizaç özelliklerine ve mevcut gelişim adımına nasıl destek sağlayacağını 1-2 samimi cümle ile açıkla.
+2. Seviye ve süre bilgilerini öğrencinin sınıf düzeyine uygun şekilde belirle.
+3. Gerekli gördüğün kadar kaynak sun — sayı konusunda bir kısıtlama yoktur; öğrencinin gerçekten faydalanabileceği her kaynağı dahil et.
+${hasCatalog ? '4. Platforma ait dersler için "platform" alanına "Rota Kurs Platformu" yaz.' : ''}
+
+ÇIKTI KURALI:
+- Düşünme sürecini yanıta dahil etme.
+- SADECE geçerli bir JSON dizisi döndür. Başka hiçbir açıklama veya metin yazma.
 JSON Formatı:
 [
   {
-    "title": "Kurs veya Kaynak Başlığı",
-    "platform": "Platform Adı (örn: BTK Akademi • Ücretsiz Sertifikalı)",
+    "title": "Ders veya Kaynak Başlığı",
+    "platform": "Platform Adı (örn: Rota Kurs Platformu veya BTK Akademi • Ücretsiz)",
     "level": "Seviye (örn: Başlangıç / Orta Seviye)",
-    "duration": "Tahmini Süre (örn: 10 Saat)",
-    "relatedStep": "İlişkili Görev",
-    "reason": "Bu kursun öğrenciye sağlayacağı faydayı anlatan 1-2 cümlelik açıklama",
-    "url": "https://www.btkakademi.gov.tr"
+    "duration": "Tahmini Süre (örn: 8 Saat)",
+    "relatedStep": "İlişkili Gelişim Adımı",
+    "reason": "Bu kaynağın öğrencinin kişilik yapısına ve hedefine sağlayacağı faydayı anlatan 1-2 cümle",
+    "url": "/student/programs"
   }
 ]`;
 
-  const userPrompt = `Öğrencinin Yaşam Alanı: "${domainLabel || domain}"
-Öğrencinin Kanban Panosundaki Görevleri:
-${stepsPrompt}
+  const catalogSection = hasCatalog
+    ? `${catalogContext}\n\nYukarıdaki katalogdan uygun dersleri seç. Katalogda bulunmayan ancak kritik öneme sahip bir kaynak varsa onu da ekleyebilirsin.`
+    : '';
 
-Bu öğrenci için TAM OLARAK 3 adet pratik, nitelikli kurs veya kaynak önerisi oluştur.
+  const userPrompt = `Öğrencinin Yaşam Alanı: "${domainLabel || domain}"
+Öğrencinin Gelişim Panosundaki Görevleri:
+${stepsPrompt}${contextPrompt}
+${catalogSection}
+
+Öğrencinin hedeflerine ve kişilik yapısına en uygun ders ve kaynakları seç. Kaç tane gerekli görüyorsan o kadar öner.
 SADECE geçerli JSON dizisini döndür.`;
 
   const result = await runAgentTask<any[]>({
@@ -251,19 +427,19 @@ SADECE geçerli JSON dizisini döndür.`;
     systemPrompt,
     userPrompt,
     temperature: 0.7,
-    maxTokens: 4096,
+    maxTokens: 6144,
   });
 
   if (Array.isArray(result) && result.length > 0) {
     return result.map((item, index) => ({
       id: `ai_course_${index + 1}_${Date.now()}`,
       title: String(item.title || 'Gelişim Rehberi ve Uygulamalı Kurs'),
-      platform: String(item.platform || 'BTK Akademi & YouTube'),
+      platform: String(item.platform || 'Rota Kurs Platformu'),
       level: String(item.level || 'Her Seviye'),
-      duration: String(item.duration || 'Esnek Hızlı Eğitim'),
+      duration: String(item.duration || 'Esnek'),
       relatedStep: String(item.relatedStep || inProgressSteps[0] || todoSteps[0] || 'Genel Hedefin'),
-      reason: String(item.reason || 'Hedefini daha hızlı gerçekleştirmene katkı sağlar.'),
-      url: String(item.url || 'https://www.btkakademi.gov.tr'),
+      reason: String(item.reason || 'Hedefine ulaşmana destek sağlar.'),
+      url: String(item.url || '/student/programs'),
     }));
   }
 

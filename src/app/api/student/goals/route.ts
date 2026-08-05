@@ -3,6 +3,21 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { EntryType, LifeDomain } from '@prisma/client';
+import { runCourseRecommendationAgent } from '@/lib/ai-agent';
+import { buildCatalogContext } from '@/lib/catalog-query';
+
+const DOMAIN_LABELS: Record<string, string> = {
+  CAREER: 'Kariyer & Mesleki Gelişim',
+  ACADEMIC: 'Akademik & Okul',
+  PERSONAL_DEV: 'Kişisel Gelişim',
+  SOCIAL: 'Sosyal & İlişkiler',
+  HEALTH: 'Sağlık & Yaşam Tarzı',
+  FINANCIAL: 'Finansal Farkındalık',
+  HOBBIES_LEISURE: 'Hobiler & Boş Zaman',
+  HEALTH_LIFESTYLE: 'Sağlık & Yaşam',
+  SOCIAL_EMOTIONAL: 'Sosyal & Duygusal',
+};
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -167,7 +182,7 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
       }
 
-      const steps: Array<{ id: string; text: string; isCompleted?: boolean }> = JSON.parse(goalItem.planSteps || '[]');
+      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(goalItem.planSteps || '[]');
       let xpDelta = 0;
 
       const updatedSteps = steps.map((s) => {
@@ -206,6 +221,42 @@ export async function PATCH(request: NextRequest) {
         }),
       ]);
 
+      // Geri Bildirim Döngüsü: Hedef tamamlandığında AI'dan yeni kurs önerisi al
+      let newRecommendations: any[] = [];
+      if (allCompleted && !goalItem.isCompleted) {
+        try {
+          const inProgressSteps = updatedSteps
+            .filter((s) => s.status === 'IN_PROGRESS')
+            .map((s) => s.text);
+          const todoSteps = updatedSteps
+            .filter((s) => !s.isCompleted && s.status !== 'IN_PROGRESS')
+            .map((s) => s.text);
+          const allStepTexts = updatedSteps.map((s) => s.text);
+
+          const domainLabel = DOMAIN_LABELS[goalItem.domain] || goalItem.domain;
+
+          // Platform katalogundan ilgili dersleri getir
+          const catalogContext = await buildCatalogContext({
+            grade: profile.grade,
+            domain: goalItem.domain,
+            profileId: profile.id,
+          });
+
+          const aiRecs = await runCourseRecommendationAgent(
+            goalItem.domain,
+            domainLabel,
+            inProgressSteps.length > 0 ? inProgressSteps : allStepTexts.slice(0, 2),
+            todoSteps.length > 0 ? todoSteps : allStepTexts.slice(2),
+            profile.userId,
+            catalogContext
+          );
+          newRecommendations = aiRecs;
+        } catch (aiErr) {
+          // AI hatası hedef tamamlamayı engellemez
+          console.error('Geri bildirim AI öneri hatası:', aiErr);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         steps: updatedSteps,
@@ -213,8 +264,10 @@ export async function PATCH(request: NextRequest) {
         xpDelta,
         experiencePoints: newXp,
         currentLevel: newLevel,
+        newRecommendations: newRecommendations.length > 0 ? newRecommendations : undefined,
       });
     }
+
 
     if (action === 'UPDATE_STEP_STATUS' && goalItemId && stepId && requestBody.newStatus) {
       const { newStatus } = requestBody;

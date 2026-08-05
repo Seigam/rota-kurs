@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { z } from 'zod';
 import { FamilyRelation } from '@prisma/client';
+import { generateRecommendations } from '@/lib/recommendation-engine';
+
 
 const familyMemberSchema = z.object({
   id: z.string().optional(),
@@ -97,6 +99,9 @@ export async function POST(req: Request) {
       profileId = newProfile.id;
     }
 
+    // isFirstTime: profil daha önce tamamlanmamışsa true
+    const isFirstTime = !existingProfile?.completedOnboarding;
+
     if (profileId) {
       // Eski aile üyelerini silip yenilerini ekleyelim
       await prisma.familyMember.deleteMany({
@@ -116,12 +121,60 @@ export async function POST(req: Request) {
           })),
         });
       }
+
+      // Öneri motorunu otomatik çalıştır (arka planda, hata olsa bile devam et)
+      try {
+        const updatedProfile = await prisma.profile.findUnique({
+          where: { id: profileId },
+          include: {
+            personalityResult: true,
+            valueRankings: { orderBy: { rankOrder: 'asc' } },
+          },
+        });
+        const allPrograms = await prisma.careerProgram.findMany();
+
+        if (updatedProfile && allPrograms.length > 0) {
+          const scoredList = generateRecommendations(
+            updatedProfile,
+            updatedProfile.personalityResult,
+            updatedProfile.valueRankings,
+            allPrograms
+          );
+
+          for (const item of scoredList) {
+            await prisma.recommendation.upsert({
+              where: {
+                profileId_programId: {
+                  profileId: updatedProfile.id,
+                  programId: item.program.id,
+                },
+              },
+              update: {
+                matchScore: item.matchScore,
+                explanation: item.explanation,
+              },
+              create: {
+                profileId: updatedProfile.id,
+                programId: item.program.id,
+                matchScore: item.matchScore,
+                explanation: item.explanation,
+                isFavorite: false,
+              },
+            });
+          }
+        }
+      } catch (recErr) {
+        // Öneri hatası onboarding'i engellemez
+        console.error('Otomatik öneri hesaplama hatası:', recErr);
+      }
     }
 
     return NextResponse.json({
       message: 'Onboarding başarıyla tamamlandı. +50 XP kazanıldı!',
       success: true,
+      redirectUrl: isFirstTime ? '/student/programs' : '/student/values',
     });
+
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0].message }, { status: 400 });

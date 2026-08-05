@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Award, Sparkles, Heart, Search, ExternalLink, Filter, 
-  CheckCircle2, AlertCircle, Compass, Zap, BookOpen, Star 
+  CheckCircle2, AlertCircle, Compass, Zap, BookOpen, Star, Target, ArrowRight,
+  Clock, XCircle, Send
 } from 'lucide-react';
 
 interface RecItem {
@@ -32,14 +34,30 @@ export function ProgramsExplorer() {
   const [selectedProvider, setSelectedProvider] = useState<string>('TÜMÜ');
   const [freeOnly, setFreeOnly] = useState<boolean>(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [toastIsGoal, setToastIsGoal] = useState(false);
+  // programId -> onay durumu: 'PENDING' | 'APPROVED' | 'REJECTED' | undefined
+  const [approvalMap, setApprovalMap] = useState<Record<string, string>>({});
+  const [approvalLoading, setApprovalLoading] = useState<Record<string, boolean>>({});
 
   const fetchRecs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/student/recommendations');
-      const data = await res.json();
-      if (res.ok && data.recommendations) {
-        setRecs(data.recommendations);
+      const [recsRes, approvalsRes] = await Promise.all([
+        fetch('/api/student/recommendations'),
+        fetch('/api/student/course-approvals'),
+      ]);
+      const recsData = await recsRes.json();
+      if (recsRes.ok && recsData.recommendations) {
+        setRecs(recsData.recommendations);
+      }
+      if (approvalsRes.ok) {
+        const appData = await approvalsRes.json();
+        const map: Record<string, string> = {};
+        for (const req of appData.requests ?? []) {
+          // program başlığı anahtar olarak kullan
+          map[req.courseTitle] = req.status;
+        }
+        setApprovalMap(map);
       }
     } catch (err) {
       console.error('Fetch recs error:', err);
@@ -70,13 +88,48 @@ export function ProgramsExplorer() {
       const data = await res.json();
       if (res.ok) {
         setToastMsg(data.message);
-        setTimeout(() => setToastMsg(''), 2500);
+        setToastIsGoal(!!data.goalCreated);
+        setTimeout(() => { setToastMsg(''); setToastIsGoal(false); }, 4000);
       } else {
         // Revert on err
         fetchRecs();
       }
     } catch (err) {
       fetchRecs();
+    }
+  };
+
+  const sendApprovalRequest = async (prog: RecItem['program']) => {
+    setApprovalLoading((prev) => ({ ...prev, [prog.id]: true }));
+    try {
+      const res = await fetch('/api/student/course-approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseTitle: prog.title,
+          coursePlatform: prog.provider || 'Rota Kurs Platformu',
+          courseLevel: undefined,
+          courseDuration: prog.duration,
+          courseUrl: prog.url || '/student/programs',
+          domain: prog.category,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setApprovalMap((prev) => ({ ...prev, [prog.title]: 'PENDING' }));
+        setToastMsg('✅ Onay talebiniz rehber öğretmeninize iletildi.');
+        setToastIsGoal(false);
+        setTimeout(() => setToastMsg(''), 4000);
+      } else if (res.status === 409) {
+        setApprovalMap((prev) => ({ ...prev, [prog.title]: data.existingStatus }));
+        setToastMsg('ℹ️ Bu ders için zaten bir onay talebiniz var.');
+        setToastIsGoal(false);
+        setTimeout(() => setToastMsg(''), 3000);
+      }
+    } catch (err) {
+      console.error('sendApprovalRequest error:', err);
+    } finally {
+      setApprovalLoading((prev) => ({ ...prev, [prog.id]: false }));
     }
   };
 
@@ -115,9 +168,21 @@ export function ProgramsExplorer() {
     <div className="space-y-6">
       {/* Toast */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-bounce border border-indigo-400/30 text-xs font-bold">
-          <CheckCircle2 className="w-4 h-4" />
+        <div className={`fixed bottom-6 right-6 z-50 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border text-xs font-bold transition-all ${
+          toastIsGoal
+            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-400/30 shadow-emerald-500/20'
+            : 'bg-indigo-600 border-indigo-400/30 animate-bounce'
+        }`}>
+          {toastIsGoal ? <Target className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
           <span>{toastMsg}</span>
+          {toastIsGoal && (
+            <Link
+              href="/student/goals"
+              className="ml-2 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-extrabold text-[10px] flex items-center gap-1 whitespace-nowrap transition-all"
+            >
+              Planı Gör <ArrowRight className="w-3 h-3" />
+            </Link>
+          )}
         </div>
       )}
 
@@ -296,19 +361,64 @@ export function ProgramsExplorer() {
                   </div>
                 </div>
 
-                {/* Bottom line: Duration & Link */}
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
-                  <span className="text-gray-400 font-medium">Süre: {prog.duration}</span>
+                {/* Bottom line: Duration, Add to Goals & Link */}
+                <div className="pt-4 border-t border-white/10 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400 font-medium">Süre: {prog.duration}</span>
+                    <a
+                      href={prog.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold flex items-center gap-1.5 transition-all group/btn"
+                    >
+                      <span>İncele</span>
+                      <ExternalLink className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                    </a>
+                  </div>
+                  {/* Onaya Gönder Butonu */}
+                  {(() => {
+                    const approvalStatus = approvalMap[prog.title];
+                    const isLoadingApproval = approvalLoading[prog.id];
 
-                  <a
-                    href={prog.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-1.5 transition-all group/btn"
-                  >
-                    <span>İncele & Başvur</span>
-                    <ExternalLink className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                  </a>
+                    if (approvalStatus === 'APPROVED') {
+                      return (
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>✅ Rehber Onayladı — Plan Sayfanda Bekliyor</span>
+                        </div>
+                      );
+                    }
+
+                    if (approvalStatus === 'PENDING') {
+                      return (
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-center gap-2">
+                          <Clock className="w-3.5 h-3.5 animate-pulse" />
+                          <span>⏳ Rehber Onayı Bekleniyor</span>
+                        </div>
+                      );
+                    }
+
+                    if (approvalStatus === 'REJECTED') {
+                      return (
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 font-bold text-xs flex items-center justify-center gap-2">
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>❌ Rehber Onaylamadı</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={() => sendApprovalRequest(prog)}
+                        disabled={isLoadingApproval}
+                        className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-violet-600/80 to-indigo-600/80 hover:from-violet-600 hover:to-indigo-600 text-white border border-violet-500/30 shadow-lg shadow-violet-500/10 disabled:opacity-60"
+                      >
+                        {isLoadingApproval
+                          ? <><Sparkles className="w-3.5 h-3.5 animate-spin" /> <span>Gönderiliyor...</span></>
+                          : <><Send className="w-3.5 h-3.5" /> <span>Rehber Onaylı Plana Ekle</span></>}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             );

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // 1. Eğer selectedGoal gönderildiyse bu hedef için adım adım Eylem Planı üret
     if (selectedGoal) {
       try {
-        const aiSteps = await runActionPlanAgent(domain, selectedGoal);
+        const aiSteps = await runActionPlanAgent(domain, selectedGoal, session.user.id);
         if (aiSteps && aiSteps.length > 0) {
           return NextResponse.json({ steps: aiSteps });
         }
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Eğer wishText gönderildiyse bu istek için 3 adet SMART Hedef üret
     try {
-      const aiGoals = await runSmartGoalsAgent(domain, wishText);
+      const aiGoals = await runSmartGoalsAgent(domain, wishText, session.user.id);
       if (aiGoals && aiGoals.length > 0) {
         return NextResponse.json({ goals: aiGoals });
       }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+
 import {
   Target, Award, CheckCircle2, Circle, Sparkles, Trash2,
   Briefcase, BookOpen, Users, Heart, Coins, Compass, Trophy,
@@ -69,6 +71,10 @@ export function GoalsTrackerClient() {
   const [activeDomain, setActiveDomain] = useState<string>('CAREER');
   const [xpCelebration, setXpCelebration] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'KANBAN' | 'CALENDAR'>('KANBAN');
+  const [completionBanner, setCompletionBanner] = useState<{
+    goalTitle: string;
+    newRecs: Array<{ title: string; platform: string; reason: string; url: string }>;
+  } | null>(null);
 
   const handleUpdateStepDate = async (
     goalId: string,
@@ -151,6 +157,18 @@ export function GoalsTrackerClient() {
           setTimeout(() => setXpCelebration(null), 2500);
           setXp(data.experiencePoints);
           setLevel(data.currentLevel);
+        }
+        // Geri bildirim döngüsü: hedef tamamlandıysa AI önerileri göster
+        if (data.isCompleted && data.newRecommendations && data.newRecommendations.length > 0) {
+          const goal = goals.find((g) => g.id === goalId);
+          setCompletionBanner({
+            goalTitle: goal?.selectedGoal || 'Hedef',
+            newRecs: data.newRecommendations,
+          });
+        } else if (data.isCompleted && !data.newRecommendations) {
+          // AI meşgul olsa bile kutlama mesajı göster
+          setXpCelebration('🏆 Tebrikler! Hedef tamamlandı! +100 XP');
+          setTimeout(() => setXpCelebration(null), 4000);
         }
       }
     } catch (err) {
@@ -389,6 +407,70 @@ export function GoalsTrackerClient() {
         <div className="fixed bottom-8 right-8 z-50 px-6 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-black text-sm shadow-2xl flex items-center gap-3 animate-bounce">
           <Trophy className="w-6 h-6" />
           <span>{xpCelebration}</span>
+        </div>
+      )}
+
+      {/* Hedef Tamamlama + AI Öneri Döngüsü Banner */}
+      {completionBanner && (
+        <div className="relative p-6 rounded-3xl bg-gradient-to-r from-emerald-950/60 via-teal-950/60 to-indigo-950/60 border border-emerald-500/40 shadow-2xl shadow-emerald-500/10 space-y-4 overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-start justify-between gap-4 relative z-10">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏆</span>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Hedef Tamamlandı!</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-white leading-snug line-clamp-2">
+                {completionBanner.goalTitle}
+              </h3>
+              <p className="text-xs text-gray-400">
+                Tebrikler! AI bir sonraki adımın için yeni kurs önerileri hazırladı:
+              </p>
+            </div>
+            <button
+              onClick={() => setCompletionBanner(null)}
+              className="shrink-0 w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 relative z-10">
+            {completionBanner.newRecs.slice(0, 3).map((rec, i) => (
+              <a
+                key={i}
+                href={rec.url || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-4 rounded-2xl bg-black/40 border border-white/10 hover:border-emerald-500/40 transition-all space-y-2 group"
+              >
+                <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">{rec.platform}</div>
+                <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">{rec.title}</div>
+                <div className="text-[11px] text-gray-400 leading-relaxed line-clamp-2">{rec.reason}</div>
+                <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-semibold">
+                  <span>İncele</span>
+                  <ArrowRight className="w-3 h-3" />
+                </div>
+              </a>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3 relative z-10">
+            <Link
+              href="/student/programs"
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Tüm Önerileri Gör
+            </Link>
+            <Link
+              href="/student/domains"
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-2 transition-all"
+            >
+              <Target className="w-3.5 h-3.5 text-amber-400" />
+              Yeni Hedef Oluştur
+            </Link>
+          </div>
         </div>
       )}
 

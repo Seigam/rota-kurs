@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { calculatePersonalityFromAnswers } from '@/lib/personality-calculator';
+import { generateRecommendations } from '@/lib/recommendation-engine';
 import { Role } from '@prisma/client';
 
 export async function GET() {
@@ -191,6 +192,53 @@ export async function POST(req: Request) {
           where: { id: profile.id },
           data: { experiencePoints: bonusXp, currentLevel: bonusLevel },
         });
+      }
+
+      // Kişilik testi tamamlandı → Önerileri MBTI+Enneagram ile yeniden hesapla
+      try {
+        const fullProfile = await prisma.profile.findUnique({
+          where: { id: profile.id },
+          include: {
+            personalityResult: true,
+            valueRankings: { orderBy: { rankOrder: 'asc' } },
+          },
+        });
+        const allPrograms = await prisma.careerProgram.findMany();
+
+        if (fullProfile && allPrograms.length > 0) {
+          const scoredList = generateRecommendations(
+            fullProfile,
+            fullProfile.personalityResult,
+            fullProfile.valueRankings,
+            allPrograms
+          );
+
+          for (const item of scoredList) {
+            await prisma.recommendation.upsert({
+              where: {
+                profileId_programId: {
+                  profileId: fullProfile.id,
+                  programId: item.program.id,
+                },
+              },
+              update: {
+                matchScore: item.matchScore,
+                explanation: item.explanation,
+              },
+              create: {
+                profileId: fullProfile.id,
+                programId: item.program.id,
+                matchScore: item.matchScore,
+                explanation: item.explanation,
+                isFavorite: false,
+              },
+            });
+          }
+          console.log(`[RPG] ${fullProfile.personalityResult?.mbtiType} kişilik tipiyle ${scoredList.length} öneri güncellendi.`);
+        }
+      } catch (recErr) {
+        // Öneri hatası test tamamlamayı engellemez
+        console.error('RPG sonrası öneri güncelleme hatası:', recErr);
       }
 
       return NextResponse.json({

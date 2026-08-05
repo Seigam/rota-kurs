@@ -107,15 +107,74 @@ export async function POST(req: Request) {
         },
       },
       data: { isFavorite },
+      include: { program: true },
     });
+
+    let goalCreated = false;
+
+    // Favori eklendiğinde otomatik GoalPlanItem oluştur
+    if (isFavorite && rec.program) {
+      const prog = rec.program;
+
+      // Aynı programdan zaten hedef var mı kontrol et
+      const existingGoal = await prisma.goalPlanItem.findFirst({
+        where: {
+          studentId: profile.id,
+          wishText: { contains: prog.title },
+        },
+      });
+
+      if (!existingGoal) {
+        // Program kategorisine göre domain belirle
+        const domainMap: Record<string, string> = {
+          'Yazılım': 'CAREER', 'Teknoloji': 'CAREER', 'Kariyer': 'CAREER',
+          'Matematik': 'ACADEMIC', 'Fen': 'ACADEMIC', 'Bilim': 'ACADEMIC',
+          'Kişisel': 'PERSONAL_DEV', 'Liderlik': 'PERSONAL_DEV', 'Girişimcilik': 'PERSONAL_DEV',
+          'Tasarım': 'HOBBIES_LEISURE', 'Sanat': 'HOBBIES_LEISURE',
+          'Sağlık': 'HEALTH_LIFESTYLE', 'Spor': 'HEALTH_LIFESTYLE',
+        };
+        let domain = 'CAREER';
+        for (const [key, val] of Object.entries(domainMap)) {
+          if (prog.category?.includes(key) || prog.title?.includes(key)) {
+            domain = val;
+            break;
+          }
+        }
+
+        const planSteps = [
+          { id: `step_1_${Date.now()}`, text: `Programa kayıt ol ve içerikleri incele`, status: 'TODO', isCompleted: false },
+          { id: `step_2_${Date.now()}`, text: `İlk modülü tamamla ve notlar çıkar`, status: 'TODO', isCompleted: false },
+          { id: `step_3_${Date.now()}`, text: `Öğrendiklerini bir mini projede uygula`, status: 'TODO', isCompleted: false },
+          { id: `step_4_${Date.now()}`, text: `Sertifikayı tamamla ve profiline ekle`, status: 'TODO', isCompleted: false },
+        ];
+
+        await prisma.goalPlanItem.create({
+          data: {
+            studentId: profile.id,
+            domain,
+            wishText: `${prog.title} programını tamamlamak`,
+            selectedGoal: `${prog.provider ? prog.provider + ' - ' : ''}${prog.title} ${prog.duration ? '(' + prog.duration + ')' : ''} programını başarıyla bitirip sertifika kazanmak`,
+            planSteps: JSON.stringify(planSteps),
+            xpAwarded: 100,
+          },
+        });
+        goalCreated = true;
+      }
+    }
 
     return NextResponse.json({
       success: true,
       isFavorite: rec.isFavorite,
-      message: rec.isFavorite ? 'Program favorilerinize eklendi!' : 'Program favorilerden çıkarıldı.',
+      goalCreated,
+      message: rec.isFavorite
+        ? goalCreated
+          ? `"${rec.program.title}" favorilerinize eklendi ve Hedef Takip Merkezi'nde planınız oluşturuldu! 🎯`
+          : 'Program favorilerinize eklendi!'
+        : 'Program favorilerden çıkarıldı.',
     });
   } catch (error) {
     console.error('POST Favorite Error:', error);
     return NextResponse.json({ error: 'Favori durumu güncellenemedi.' }, { status: 500 });
   }
 }
+

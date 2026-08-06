@@ -108,6 +108,10 @@ model Profile {
   currentLevel     Int             @default(1)
   completedOnboarding Boolean      @default(false)
   schoolName          String?
+  streakDays       Int             @default(0)
+  lastLessonDate   DateTime?
+  dailyXp          Int             @default(0)
+  dailyXpDate      DateTime?
   
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   classGroup       ClassGroup?     @relation(fields: [classGroupId], references: [id], onDelete: SetNull)

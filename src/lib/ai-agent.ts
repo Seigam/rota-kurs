@@ -39,9 +39,16 @@ export interface ActionStep {
  * Temel AI Agent Motoru: Ngrok/OpenAI uyumlu endpoint'e istek gönderir ve yanıtı işler.
  */
 export async function runAgentTask<T = any>(options: AgentTaskOptions): Promise<T> {
-  const baseUrl = (process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL).replace(/\/+$/, '');
+  // Eğer .env dosyasında tam API URL'si tanımlıysa onu kullan,
+  // tanımlı değilse geriye dönük uyumluluk için BASE_URL üzerinden hesapla.
+  let endpoint = process.env.AI_API_URL;
+  
+  if (!endpoint) {
+    const baseUrl = (process.env.AI_API_BASE_URL || DEFAULT_AI_BASE_URL).replace(/\/+$/, '');
+    endpoint = `${baseUrl}/chat/completions`;
+  }
+  
   const model = process.env.AI_MODEL || DEFAULT_AI_MODEL;
-  const endpoint = `${baseUrl}/chat/completions`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -88,8 +95,12 @@ export async function runAgentTask<T = any>(options: AgentTaskOptions): Promise<
     throw new Error(`[AI Agent - ${options.taskName}] Model boş yanıt döndürdü.`);
   }
 
+  // DeepSeek-R1 gibi reasoning modellerinin <think> ... </think> veya 'Thinking Process:' bloklarını temizle
+  let cleanedContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  cleanedContent = cleanedContent.replace(/^Thinking Process:[\s\S]*?(?=\[|\{)/i, '').trim();
+
   // Markdown kod bloklarını temizle (```json ... ``` veya ``` ... ```)
-  let cleanedContent = rawContent
+  cleanedContent = cleanedContent
     .replace(/^```[a-z]*\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
@@ -189,7 +200,7 @@ export function formatStudentContextPrompt(studentContext?: StudentContext): str
   if (studentContext.hobbies) parts.push(`- İlgi Alanları & Hobiler: ${studentContext.hobbies}`);
 
   if (studentContext.mbtiType || studentContext.enneagramType) {
-    let personalityStr = '- Kişilik Testi Analizi (Keşif Adası / RPG): ';
+    let personalityStr = '- Kişilik Testi Analizi: ';
     if (studentContext.mbtiType) personalityStr += `MBTI Tipi: ${studentContext.mbtiType} `;
     if (studentContext.enneagramType) {
       personalityStr += `| Enneagram Tipi: ${studentContext.enneagramType}`;
@@ -243,8 +254,7 @@ GÖREVİN:
 UZMANLIK VE REHBERLİK İLKELERİN:
 1. "SMART hedef" veya jargon terimler kullanma. Hedefler son derece anlaşılır, ilham verici ve net Türkçe ile kaleme alınmalıdır.
 2. Öğrencinin mizaç özelliklerini (Analitik, Sosyal, Uygulamacı, Araştırmacı vb.) dikkate alarak onun içsel motivasyonunu artıracak özgün ifadeler seç.
-3. Her hedef seçeneği net bir zaman dilimi (örneğin: "önümüzdeki 3 ay boyunca", "bu dönem sonuna kadar"), somut bir çalışma sıklığı veya sayısal ölçüt (örneğin: "haftada 4 saat", "2 portfolyo projesi") ve açık bir çıktı içermelidir.
-4. Sınıf seviyesine uygun gerçekçi beklentiler belirle.
+3. Sınıf seviyesine uygun gerçekçi beklentiler belirle.
 
 ÇIKTI KURALI:
 - Düşünme sürecini (thinking process) yanıta yazma.
@@ -267,7 +277,7 @@ SADECE ["hedef 1", "hedef 2", "hedef 3"] biçiminde geçerli bir JSON dizisi dö
     systemPrompt,
     userPrompt,
     temperature: 0.7,
-    maxTokens: 4096,
+    maxTokens: 3072,
   });
 
   if (Array.isArray(result) && result.length > 0) {
@@ -331,7 +341,7 @@ SADECE JSON dizisini döndür.`;
     systemPrompt,
     userPrompt,
     temperature: 0.7,
-    maxTokens: 4096,
+    maxTokens: 3072,
   });
 
   if (Array.isArray(result) && result.length > 0) {
@@ -384,9 +394,9 @@ export async function runCourseRecommendationAgent(
 
 GÖREVİN:
 ${hasCatalog
-  ? `Sana verilen platform ders ve mikroyeterlilik kataloğundan, öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) en uygun kaynakları seç ve eşleştirme gerekçesini yaz. Katalogda yer alan dersleri önceliklendir; yalnızca hiçbir ders uygun değilse dışarıdan öneri yapabilirsin.`
-  : `Öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) doğrudan katkı sunacak pratik, nitelikli ve erişilebilir eğitim/kurs kaynakları öner.`
-}
+      ? `Sana verilen platform ders ve mikroyeterlilik kataloğundan, öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) en uygun kaynakları seç ve eşleştirme gerekçesini yaz. Katalogda yer alan dersleri önceliklendir; yalnızca hiçbir ders uygun değilse dışarıdan öneri yapabilirsin.`
+      : `Öğrencinin üzerinde çalıştığı gelişim adımlarına ve kişilik mizacına (MBTI/Enneagram) doğrudan katkı sunacak pratik, nitelikli ve erişilebilir eğitim/kurs kaynakları öner.`
+    }
 
 UZMANLIK VE REHBERLİK İLKELERİN:
 1. Önerilen her kaynak için "reason" alanında, kaynağın öğrencinin mizaç özelliklerine ve mevcut gelişim adımına nasıl destek sağlayacağını 1-2 samimi cümle ile açıkla.
@@ -427,7 +437,7 @@ SADECE geçerli JSON dizisini döndür.`;
     systemPrompt,
     userPrompt,
     temperature: 0.7,
-    maxTokens: 6144,
+    maxTokens: 4096,
   });
 
   if (Array.isArray(result) && result.length > 0) {

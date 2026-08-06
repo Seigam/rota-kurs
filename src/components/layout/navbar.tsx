@@ -85,6 +85,13 @@ export function Navbar() {
                       Hedef Takibi
                     </Link>
                     <Link
+                      href="/student/lesson-path"
+                      className={`text-sm font-medium transition-colors hover:text-yellow-400 ${pathname.startsWith('/student/lesson-path') ? 'text-yellow-400 font-semibold' : 'text-gray-300'
+                        }`}
+                    >
+                      Ders Rotası
+                    </Link>
+                    <Link
                       href="/student/profile"
                       className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/profile') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
                         }`}

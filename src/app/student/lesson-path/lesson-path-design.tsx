@@ -3,310 +3,261 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import {
   ArrowRight,
-  BrainCircuit,
+  BookOpen,
+  BriefcaseBusiness,
   Check,
   Clock3,
-  Compass,
-  Crown,
-  Flag,
+  Coins,
+  ExternalLink,
   Flame,
   Gem,
-  Gift,
   GraduationCap,
-  Heart,
-  Lightbulb,
-  LockKeyhole,
+  HeartPulse,
   Map,
   Medal,
-  Play,
-  ShieldCheck,
   Sparkles,
+  Users,
   X,
-  Zap,
 } from 'lucide-react';
 import styles from './lesson-path-design.module.css';
-import { completeLessonStep } from '@/app/actions/lesson-path-actions';
-import { useRouter } from 'next/navigation';
+
+export type LessonPathCourse = {
+  id: string;
+  title: string;
+  provider: string;
+  level: string | null;
+  duration: string | null;
+  url: string | null;
+  description: string | null;
+  counselorNote: string | null;
+  status: 'APPROVED' | 'PENDING';
+};
+
+export type LessonPathUnit = {
+  id: string;
+  title: string;
+  goalCount: number;
+  courses: LessonPathCourse[];
+};
 
 function cx(...names: Array<string | false | null | undefined>) {
   return names.filter(Boolean).map((name) => styles[name as string]).join(' ');
 }
 
-type Step = { id: string; text: string; isCompleted: boolean };
+const DOMAIN_ICONS = {
+  CAREER: BriefcaseBusiness,
+  ACADEMIC: GraduationCap,
+  PERSONAL_DEV: Sparkles,
+  SOCIAL: Users,
+  HEALTH: HeartPulse,
+  FINANCIAL: Coins,
+} as const;
+
+const NODE_OFFSETS = [0, 58, -42, 72, -28, 46, -58];
 
 export function LessonPathDesign({
-  studentId,
   studentName,
   experiencePoints,
   level,
   streakDays,
   dailyXp,
-  goals,
+  units,
 }: {
-  studentId: string;
   studentName: string;
   experiencePoints: number;
   level: number;
   streakDays: number;
   dailyXp: number;
-  goals: any[];
+  units: LessonPathUnit[];
 }) {
-  const router = useRouter();
-  const [lessonOpen, setLessonOpen] = useState(false);
-  const [activeStep, setActiveStep] = useState<{ goalId: string; step: Step; unitTitle: string } | null>(null);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [completedScreen, setCompletedScreen] = useState<{ xpEarned: number } | null>(null);
-
+  const [activeCourse, setActiveCourse] = useState<(LessonPathCourse & { unitTitle: string }) | null>(null);
   const firstName = studentName.trim().split(/\s+/)[0] || 'Öğrenci';
   const initial = firstName.charAt(0).toLocaleUpperCase('tr-TR');
+  const totalCourses = units.reduce((total, unit) => total + unit.courses.length, 0);
+  const approvedCourses = units.reduce(
+    (total, unit) => total + unit.courses.filter((course) => course.status === 'APPROVED').length,
+    0,
+  );
+  const pendingCourses = totalCourses - approvedCourses;
+  const approvalPercent = totalCourses > 0 ? Math.round((approvedCourses / totalCourses) * 100) : 0;
 
   useEffect(() => {
-    if (!lessonOpen) return;
+    if (!activeCourse) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeLesson();
+      if (event.key === 'Escape') setActiveCourse(null);
     };
     window.addEventListener('keydown', handleEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [lessonOpen]);
+  }, [activeCourse]);
 
-  const closeLesson = () => {
-    setLessonOpen(false);
-    setActiveStep(null);
-    setCompletedScreen(null);
-  };
-
-  const openLesson = (goalId: string, step: Step, unitTitle: string) => {
-    setActiveStep({ goalId, step, unitTitle });
-    setCompletedScreen(null);
-    setLessonOpen(true);
-  };
-
-  const handleComplete = async () => {
-    if (!activeStep || isCompleting) return;
-    setIsCompleting(true);
-    try {
-      const res = await completeLessonStep(studentId, activeStep.goalId, activeStep.step.id, 30);
-      if (res.success) {
-        setCompletedScreen({ xpEarned: res.xpEarned || 30 });
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsCompleting(false);
-    }
-  };
-
-  // Parse goals into units
-  const units = goals.map(g => {
-    let steps: Step[] = [];
-    try {
-      steps = JSON.parse(g.planSteps);
-    } catch (e) {}
-    return { ...g, steps };
-  }).filter(g => g.steps.length > 0);
-
-  const totalSteps = units.reduce((acc, u) => acc + u.steps.length, 0);
-  const completedStepsCount = units.reduce((acc, u) => acc + u.steps.filter((s: Step) => s.isCompleted).length, 0);
-  const progressPercent = totalSteps > 0 ? Math.round((completedStepsCount / totalSteps) * 100) : 0;
-
-  // Determine active unit (first one that is not fully completed)
-  const activeUnitIndex = units.findIndex(u => !u.steps.every((s: Step) => s.isCompleted));
-  
   return (
     <main className={cx('page-shell')}>
       <section className={cx('route-view')} aria-labelledby="lesson-route-title">
         <div className={cx('route-intro-card')}>
           <div className={cx('route-intro-copy')}>
-            <div className={cx('route-kicker')}><Map size={15} /> Hedef Rotası</div>
-            <h1 id="lesson-route-title">Kendini keşfet.<br /><em>Geleceğini adım adım kur.</em></h1>
-            <p>Seçtiğin hedefler ve adımlar seni ideal kariyerine yaklaştırır.</p>
+            <div className={cx('route-kicker')}><Map size={15} /> Kişisel ders rotan</div>
+            <h1 id="lesson-route-title">Hedeflerine uygun dersler,<br /><em>tek bir rotada.</em></h1>
+            <p>Seçtiğin hedef kategorileri için aldığın ve rehber onayında olan dersleri burada takip edebilirsin.</p>
           </div>
           <div className={cx('route-progress-summary')}>
-            <div className={cx('route-ring')}><div><strong>%{progressPercent}</strong><span>tamamlandı</span></div></div>
+            <div className={cx('route-ring')} style={{ '--progress': `${approvalPercent}%` } as CSSProperties}>
+              <div><strong>{approvedCourses}</strong><span>onaylı ders</span></div>
+            </div>
             <div className={cx('route-summary-copy')}>
-              <span>TOPLAM İLERLEME</span>
-              <strong>{completedStepsCount} / {totalSteps} Adım</strong>
+              <span>DERS DURUMU</span>
+              <strong>{totalCourses} ders rotada</strong>
+              <small>{pendingCourses > 0 ? `${pendingCourses} ders rehber onayında` : 'Tüm dersler onaylandı'}</small>
             </div>
           </div>
           <div className={cx('route-intro-stars')} aria-hidden="true">✦</div>
         </div>
 
         <div className={cx('learning-layout')}>
-          <div className={cx('path-container')} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {units.length === 0 && (
-              <div className={cx('path-card')} style={{ padding: '30px', textAlign: 'center', color: '#888' }}>
-                Henüz bir hedef rotası oluşturulmamış. Hedeflerim sayfasından hedef ekleyin.
+          <div className={cx('path-container')}>
+            {units.length === 0 ? (
+              <div className={cx('empty-state')}>
+                <span><BookOpen size={26} /></span>
+                <h2>Ders rotan henüz boş</h2>
+                <p>Önce bir hedef kategorisi belirle, ardından önerilen derslerden rotana ekle.</p>
+                <a href="/student/goals">Hedef kategorisi oluştur <ArrowRight size={15} /></a>
               </div>
-            )}
-            
-            {units.map((unit, uIdx) => {
-              const isLocked = activeUnitIndex !== -1 && uIdx > activeUnitIndex;
-              const isCompleted = uIdx < activeUnitIndex || (activeUnitIndex === -1 && units.length > 0);
-              const isCurrent = uIdx === activeUnitIndex;
-
-              const completedInUnit = unit.steps.filter((s: Step) => s.isCompleted).length;
-
-              // Generate zigzag offsets
-              const nodePositions = [0, 60, -40, 80, -20, 40, -60];
-              const icons = [Compass, ShieldCheck, BrainCircuit, Flame, Lightbulb, Gift, GraduationCap];
+            ) : units.map((unit, unitIndex) => {
+              const UnitIcon = DOMAIN_ICONS[unit.id as keyof typeof DOMAIN_ICONS] ?? BookOpen;
+              const approvedInUnit = unit.courses.filter((course) => course.status === 'APPROVED').length;
 
               return (
-                <div key={unit.id} className={cx('path-card')} style={{ opacity: isLocked ? 0.6 : 1 }}>
-                  <header className={cx('unit-banner')} style={isLocked ? { filter: 'grayscale(100%)' } : {}}>
-                    <div className={cx('unit-number')}><span>ÜNİTE</span><strong>{String(uIdx + 1).padStart(2, '0')}</strong></div>
-                    <div><p>{unit.domain.toUpperCase()} HEDEFİ</p><h2>{unit.selectedGoal}</h2><span>{unit.wishText}</span></div>
-                    <div className={cx('unit-score')}><Crown size={19} /><strong>{completedInUnit} / {unit.steps.length}</strong><span>adım</span></div>
+                <article key={unit.id} className={cx('path-card')}>
+                  <header className={cx('unit-banner')}>
+                    <div className={cx('unit-number')}><span>ROTA</span><strong>{String(unitIndex + 1).padStart(2, '0')}</strong></div>
+                    <div className={cx('unit-heading')}>
+                      <p><UnitIcon size={13} /> HEDEF KATEGORİSİ</p>
+                      <h2>{unit.title}</h2>
+                      <span>{unit.goalCount > 0 ? `${unit.goalCount} hedef bu alanı besliyor` : 'Ders kategorisi'}</span>
+                    </div>
+                    <div className={cx('unit-score')}><Check size={18} /><strong>{approvedInUnit} / {unit.courses.length}</strong><span>onaylı</span></div>
                   </header>
 
-                  <div className={cx('skill-path')} aria-label="Ders yolu" style={{ minHeight: `${Math.max(300, unit.steps.length * 130)}px` }}>
-                    {unit.steps.map((step: Step, sIdx: number) => {
-                      const nextStep = unit.steps[sIdx + 1];
-                      const offset = nodePositions[sIdx % nodePositions.length];
-                      const nextOffset = nextStep ? nodePositions[(sIdx + 1) % nodePositions.length] : 0;
-                      
-                      const dx = nextStep ? nextOffset - offset : 0;
-                      const connectorLength = Math.sqrt(dx * dx + 128 * 128);
-                      const connectorAngle = Math.atan2(128, dx) * 180 / Math.PI;
-                      
-                      const Icon = icons[sIdx % icons.length];
-                      const variables = {
-                        '--node-x': `${offset}px`,
-                        '--link-length': `${connectorLength}px`,
-                        '--link-angle': `${connectorAngle}deg`,
-                      } as CSSProperties;
+                  {unit.courses.length === 0 ? (
+                    <div className={cx('unit-empty')}>
+                      <BookOpen size={22} />
+                      <div><strong>Bu kategoriye henüz ders eklenmedi.</strong><span>Önerilerden bir ders seçerek rotanı başlatabilirsin.</span></div>
+                      <a href="/student/programs">Dersleri incele <ArrowRight size={14} /></a>
+                    </div>
+                  ) : (
+                    <div
+                      className={cx('skill-path')}
+                      aria-label={`${unit.title} ders yolu`}
+                      style={{ minHeight: `${Math.max(250, unit.courses.length * 126 + 38)}px` }}
+                    >
+                      {unit.courses.map((course, courseIndex) => {
+                        const nextCourse = unit.courses[courseIndex + 1];
+                        const offset = NODE_OFFSETS[courseIndex % NODE_OFFSETS.length];
+                        const nextOffset = nextCourse ? NODE_OFFSETS[(courseIndex + 1) % NODE_OFFSETS.length] : 0;
+                        const dx = nextCourse ? nextOffset - offset : 0;
+                        const connectorLength = Math.sqrt(dx * dx + 126 * 126);
+                        const connectorAngle = Math.atan2(126, dx) * 180 / Math.PI;
+                        const variables = {
+                          '--node-x': `${offset}px`,
+                          '--link-length': `${connectorLength}px`,
+                          '--link-angle': `${connectorAngle}deg`,
+                        } as CSSProperties;
+                        const isApproved = course.status === 'APPROVED';
 
-                      // Determine state
-                      let state = 'locked';
-                      if (isCompleted || step.isCompleted) {
-                        state = 'done';
-                      } else if (isCurrent) {
-                        // find first uncompleted step
-                        const firstUncompletedIdx = unit.steps.findIndex((s: Step) => !s.isCompleted);
-                        if (sIdx === firstUncompletedIdx) state = 'active';
-                        else if (sIdx === firstUncompletedIdx + 1) state = 'next';
-                      }
-
-                      return (
-                        <div className={cx('lesson-stop', state)} style={variables} key={step.id}>
-                          {nextStep && <span className={cx('lesson-connector')} aria-hidden="true" />}
-                          <div className={cx('lesson-node-wrap')}>
-                            {state === 'active' && (
-                              <div className={cx('active-lesson-popover')}>
-                                <span>SIRADAKİ ADIM</span>
-                                <strong>{step.text.substring(0, 30)}...</strong>
-                                <small>+30 XP</small>
-                                <button type="button" onClick={() => openLesson(unit.id, step, unit.selectedGoal)}>İncele <Play size={13} fill="currentColor" /></button>
-                              </div>
-                            )}
-                            <button
-                              className={cx('lesson-node')}
-                              type="button"
-                              disabled={state === 'locked' || state === 'next'}
-                              onClick={() => (state === 'active' || state === 'done') && openLesson(unit.id, step, unit.selectedGoal)}
-                              aria-label={step.text}
-                            >
-                              {state === 'done' ? <Check size={28} strokeWidth={3.2} /> : <Icon size={27} />}
-                              {state === 'active' && <span className={cx('lesson-pulse')} />}
-                              {state === 'done' && <span className={cx('lesson-crown')}><Crown size={12} fill="currentColor" /></span>}
-                            </button>
-                            <strong className={cx('lesson-label')} style={{ maxWidth: '120px' }}>{step.text}</strong>
-                            <small className={cx('lesson-reward')}>{state === 'done' ? 'Tamamlandı' : '+30 XP'}</small>
+                        return (
+                          <div className={cx('lesson-stop', isApproved ? 'approved' : 'pending')} style={variables} key={course.id}>
+                            {nextCourse && <span className={cx('lesson-connector')} aria-hidden="true" />}
+                            <div className={cx('lesson-node-wrap')}>
+                              <button
+                                className={cx('lesson-node')}
+                                type="button"
+                                onClick={() => setActiveCourse({ ...course, unitTitle: unit.title })}
+                                aria-label={`${course.title} dersinin ayrıntılarını aç`}
+                                title={course.title}
+                              >
+                                {isApproved ? <BookOpen size={27} /> : <Clock3 size={25} />}
+                              </button>
+                              <strong className={cx('lesson-label')}>{course.title}</strong>
+                              <small className={cx('lesson-status')}>
+                                {isApproved ? <><Check size={11} /> Rotana eklendi</> : <><Clock3 size={11} /> Onay bekliyor</>}
+                              </small>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </article>
               );
             })}
           </div>
 
-          <aside className={cx('route-sidebar')} aria-label="Ders yolu ilerlemesi">
-            <section className={cx('route-side-card', 'energy-card')}>
-              <div className={cx('route-side-title')}><div><p className={cx('eyebrow')}>ÖĞRENME SERİN</p><h2>Ritmi koru!</h2></div><span className={cx('energy-flame')}><Flame size={22} fill="currentColor" /></span></div>
-              <div className={cx('week-strip')}>
-                {['P', 'S', 'Ç', 'P', 'C', 'C', 'P'].map((day, index) => (
-                  <div className={cx(index < 5 ? 'checked' : index === 5 ? 'today' : null)} key={`${day}-${index}`}>
-                    <span>{index < 5 ? <Check size={12} /> : day}</span><small>{index + 1}</small>
-                  </div>
-                ))}
-              </div>
-              <p><strong>{streakDays} günlük seri</strong> — Bugünkü dersi bitir ve serini sürdür.</p>
+          <aside className={cx('route-sidebar')} aria-label="Ders rotası özeti">
+            <section className={cx('route-side-card')}>
+              <div className={cx('route-side-title')}><div><p className={cx('eyebrow')}>ÖĞRENME SERİN</p><h2>Ritmi koru</h2></div><span className={cx('energy-flame')}><Flame size={22} fill="currentColor" /></span></div>
+              <p className={cx('side-description')}><strong>{streakDays} günlük seri.</strong> Rotandaki bir derse bugün yeniden uğra.</p>
             </section>
 
-            <section className={cx('route-side-card', 'league-card')}>
-              <div className={cx('league-heading')}><span className={cx('league-gem')}><Gem size={20} /></span><div><p className={cx('eyebrow')}>KİŞİSEL SEVİYE</p><h2>Kristal Lig</h2></div><strong>#{level}</strong></div>
-              <div className={cx('league-list')}>
-                <div className={cx('me')}><b>1</b><span className={cx('tiny-avatar')}>{initial}</span><p>{firstName}</p><strong>{experiencePoints} XP</strong></div>
-              </div>
-              <div className={cx('league-safe')}><Medal size={14} /> Her adım rotanı biraz daha güçlendirir</div>
+            <section className={cx('route-side-card')}>
+              <div className={cx('league-heading')}><span className={cx('league-gem')}><Gem size={20} /></span><div><p className={cx('eyebrow')}>KİŞİSEL SEVİYE</p><h2>Seviye {level}</h2></div></div>
+              <div className={cx('student-row')}><span className={cx('tiny-avatar')}>{initial}</span><p>{firstName}</p><strong>{experiencePoints} XP</strong></div>
+              <div className={cx('league-safe')}><Medal size={14} /> Derslerin hedef alanlarına göre gruplanır</div>
             </section>
 
-            <section className={cx('route-side-card', 'daily-xp-card')}>
-              <div className={cx('route-side-title')}><div><p className={cx('eyebrow')}>GÜNLÜK HEDEF</p><h2>30 XP kazan</h2></div><strong>{dailyXp} / 30</strong></div>
+            <section className={cx('route-side-card')}>
+              <div className={cx('route-side-title')}><div><p className={cx('eyebrow')}>GÜNLÜK HEDEF</p><h2>30 XP kazan</h2></div><strong className={cx('xp-count')}>{dailyXp} / 30</strong></div>
               <div className={cx('daily-xp-track')}><span style={{ width: `${Math.min(100, (dailyXp / 30) * 100)}%` }} /></div>
-              <small>{dailyXp >= 30 ? 'Günlük hedef tamam!' : 'Bir ders daha ve hedef tamam!'}</small>
+              <small className={cx('muted-copy')}>{dailyXp >= 30 ? 'Günlük hedef tamamlandı.' : 'Bugün biraz daha ilerleyebilirsin.'}</small>
             </section>
           </aside>
         </div>
       </section>
 
-      {lessonOpen && activeStep && (
+      {activeCourse && (
         <div
           className={cx('lesson-overlay')}
           role="dialog"
           aria-modal="true"
           aria-labelledby="lesson-title"
-          onMouseDown={(event) => event.target === event.currentTarget && closeLesson()}
+          onMouseDown={(event) => event.target === event.currentTarget && setActiveCourse(null)}
         >
           <div className={cx('lesson-modal')}>
-            <div className={cx('lesson-modal-top')} style={{ gridTemplateColumns: '36px 1fr' }}>
-              <button type="button" onClick={closeLesson} aria-label="Kapat"><X size={20} /></button>
-              <div className={cx('lesson-modal-progress')}><span style={{ width: completedScreen ? '100%' : '50%' }} /></div>
+            <div className={cx('lesson-modal-top')}>
+              <span className={cx('modal-kicker')}><BookOpen size={15} /> {activeCourse.unitTitle}</span>
+              <button type="button" onClick={() => setActiveCourse(null)} aria-label="Ders ayrıntılarını kapat"><X size={20} /></button>
             </div>
-
-            {!completedScreen ? (
-              <div className={cx('lesson-intro')}>
-                <div className={cx('lesson-hero-icon')}><Compass size={38} fill="currentColor" /></div>
-                <p className={cx('eyebrow')}>{activeStep.unitTitle}</p>
-                <h2 id="lesson-title" style={{ fontSize: '20px' }}>{activeStep.step.text}</h2>
-                <p style={{ marginTop: '12px' }}>Bu adımı tamamlamak için kurs platformundaki ilgili içeriğe göz atabilirsin. Tamamlandığında hedefine bir adım daha yaklaşacaksın.</p>
-                
-                <div className={cx('lesson-facts')}>
-                  <span><Clock3 size={17} /><strong>Serbest</strong><small>Kendi hızında</small></span>
-                  <span><Zap size={17} /><strong>+30 XP</strong><small>Ödül</small></span>
-                  <span><Flag size={17} /><strong>1 Görev</strong><small>Hedefe ulaş</small></span>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
-                  <button className={cx('lesson-main-button')} type="button" style={{ background: '#333' }} onClick={() => router.push('/student/courses')}>
-                    Kursa Git <ArrowRight size={18} />
-                  </button>
-                  <button 
-                    className={cx('lesson-main-button')} 
-                    type="button" 
-                    onClick={handleComplete}
-                    disabled={isCompleting || activeStep.step.isCompleted}
+            <div className={cx('lesson-intro')}>
+              <span className={cx('course-state', activeCourse.status === 'APPROVED' ? 'approved-state' : 'pending-state')}>
+                {activeCourse.status === 'APPROVED' ? <><Check size={14} /> Rotana eklendi</> : <><Clock3 size={14} /> Rehber onayı bekliyor</>}
+              </span>
+              <h2 id="lesson-title">{activeCourse.title}</h2>
+              {activeCourse.description && <p>{activeCourse.description}</p>}
+              <dl className={cx('lesson-facts')}>
+                <div><dt>Kurum</dt><dd>{activeCourse.provider}</dd></div>
+                <div><dt>Seviye</dt><dd>{activeCourse.level || 'Belirtilmedi'}</dd></div>
+                <div><dt>Süre</dt><dd>{activeCourse.duration || 'Kendi hızında'}</dd></div>
+              </dl>
+              {activeCourse.counselorNote && (
+                <div className={cx('counselor-note')}><strong>Rehber notu</strong><p>{activeCourse.counselorNote}</p></div>
+              )}
+              <div className={cx('modal-actions')}>
+                <button type="button" className={cx('secondary-button')} onClick={() => setActiveCourse(null)}>Rotaya dön</button>
+                {activeCourse.url && activeCourse.status === 'APPROVED' && (
+                  <a
+                    className={cx('primary-button')}
+                    href={activeCourse.url}
+                    target={activeCourse.url.startsWith('http') ? '_blank' : undefined}
+                    rel={activeCourse.url.startsWith('http') ? 'noopener noreferrer' : undefined}
                   >
-                    {activeStep.step.isCompleted ? 'Zaten Tamamlandı' : isCompleting ? 'Kaydediliyor...' : 'Göşrevi Tamamla'} <Check size={18} />
-                  </button>
-                </div>
+                    Derse git {activeCourse.url.startsWith('http') ? <ExternalLink size={16} /> : <ArrowRight size={16} />}
+                  </a>
+                )}
               </div>
-            ) : (
-              <div className={cx('lesson-complete')}>
-                <div className={cx('complete-burst')}><Crown size={43} fill="currentColor" /></div>
-                <p className={cx('eyebrow')}>ADIM TAMAMLANDI</p>
-                <h2 id="lesson-title">Haritan şekilleniyor!</h2>
-                <p>Bir hedefi daha geride bıraktın. Rotanda ilerlemeye devam et!</p>
-                <div className={cx('xp-earned')}><Sparkles size={21} /><div><span>KAZANILAN</span><strong>+{completedScreen.xpEarned} XP</strong></div></div>
-                <button className={cx('lesson-main-button')} type="button" onClick={closeLesson}>Ders yoluna dön <Check size={18} /></button>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}

@@ -249,7 +249,7 @@ export default async function StudentResultsPage() {
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Yapay Zeka Sentezi</span>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Kural Tabanlı Eşleşme</span>
                 <h3 className="text-xl font-extrabold text-white">Sizin İçin En Yüksek Eşleşmeli 4 Program</h3>
               </div>
             </div>

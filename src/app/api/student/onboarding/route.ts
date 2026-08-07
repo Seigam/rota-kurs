@@ -128,6 +128,7 @@ export async function POST(req: Request) {
           where: { id: profileId },
           include: {
             personalityResult: true,
+            careerInterestResult: true,
             valueRankings: { orderBy: { rankOrder: 'asc' } },
           },
         });
@@ -138,7 +139,8 @@ export async function POST(req: Request) {
             updatedProfile,
             updatedProfile.personalityResult,
             updatedProfile.valueRankings,
-            allPrograms
+            allPrograms,
+            updatedProfile.careerInterestResult,
           );
 
           for (const item of scoredList) {

@@ -14,6 +14,7 @@ export async function GET() {
       where: { userId: user.id },
       include: {
         personalityResult: true,
+        careerInterestResult: true,
         valueRankings: {
           orderBy: { rankOrder: 'asc' },
         },
@@ -34,7 +35,8 @@ export async function GET() {
       profile,
       profile.personalityResult,
       profile.valueRankings,
-      allPrograms
+      allPrograms,
+      profile.careerInterestResult,
     );
 
     // Veritabanındaki Recommendation tablosuna upsert edelim
@@ -177,4 +179,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Favori durumu güncellenemedi.' }, { status: 500 });
   }
 }
-

@@ -194,12 +194,13 @@ export async function POST(req: Request) {
         });
       }
 
-      // Kişilik testi tamamlandı → Önerileri MBTI+Enneagram ile yeniden hesapla
+      // Kişilik testi öz-farkındalık sonucunu günceller; program puanında MBTI/Enneagram kullanılmaz.
       try {
         const fullProfile = await prisma.profile.findUnique({
           where: { id: profile.id },
           include: {
             personalityResult: true,
+            careerInterestResult: true,
             valueRankings: { orderBy: { rankOrder: 'asc' } },
           },
         });
@@ -210,7 +211,8 @@ export async function POST(req: Request) {
             fullProfile,
             fullProfile.personalityResult,
             fullProfile.valueRankings,
-            allPrograms
+            allPrograms,
+            fullProfile.careerInterestResult,
           );
 
           for (const item of scoredList) {

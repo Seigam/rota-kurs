@@ -64,5 +64,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET || 'rpg-kariyer-planlama-super-gizli-anahtar-2026',
+  secret: process.env.NEXTAUTH_SECRET,
 };

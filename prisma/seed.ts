@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, Role, FamilyRelation, EntryType, LifeDomain } from '@prisma/client';
+import { PrismaClient, Role, FamilyRelation, EntryType, LifeDomain, CatalogItemType, CatalogVerificationStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { createHash } from 'node:crypto';
+import { COMPULSORY_GRADE_LEVELS, ELECTIVE_CATEGORIES } from '../src/lib/data/micro-credentials-data';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy',
@@ -14,12 +16,94 @@ const prisma = new PrismaClient({
   log: ['info', 'warn', 'error'],
 });
 
+const catalogId = (prefix: string, title: string) => `${prefix}_${createHash('sha256').update(title).digest('hex').slice(0, 20)}`;
+const verifiedAt = new Date('2026-08-07T00:00:00.000Z');
+
+function inferDomainTags(text: string): string[] {
+  const normalized = text.toLocaleLowerCase('tr-TR');
+  const tags = new Set<string>(['ACADEMIC']);
+  if (/kariyer|portfolyo|girişim|lider|iş |mülakat/.test(normalized)) tags.add('CAREER');
+  if (/finans|bütçe|tasarruf|ekonomi/.test(normalized)) tags.add('FINANCIAL');
+  if (/sağlık|spor|beslen|iyi oluş/.test(normalized)) tags.add('HEALTH');
+  if (/iletişim|sosyal|gönüllü|takım/.test(normalized)) tags.add('SOCIAL');
+  if (/sanat|müzik|yaratıcı|zaman yönetimi|kişisel/.test(normalized)) tags.add('PERSONAL_DEV');
+  return [...tags];
+}
+
+function inferRiasecTags(text: string): string[] {
+  const normalized = text.toLocaleLowerCase('tr-TR');
+  const tags = new Set<string>();
+  if (/üretim|robot|elektronik|mühendis|uygulama/.test(normalized)) tags.add('R');
+  if (/bilim|araştır|veri|matematik|fen|analiz/.test(normalized)) tags.add('I');
+  if (/sanat|tasarım|müzik|yaratıcı|medya/.test(normalized)) tags.add('A');
+  if (/iletişim|öğret|rehber|sağlık|gönüllü/.test(normalized)) tags.add('S');
+  if (/lider|girişim|pazar|iş |yönetim/.test(normalized)) tags.add('E');
+  if (/düzen|bütçe|kayıt|plan|zaman/.test(normalized)) tags.add('C');
+  return [...tags];
+}
+
+async function syncVerifiedCatalog() {
+  for (const level of COMPULSORY_GRADE_LEVELS) {
+    const gradeMatch = level.grade.match(/\d+/);
+    const grade = gradeMatch ? Number(gradeMatch[0]) : 9;
+    for (const course of level.courses) {
+      const combined = `${course.title} ${course.description} ${course.skills.join(' ')}`;
+      await prisma.catalogItem.upsert({
+        where: { id: catalogId('micro', `${level.grade}:${course.title}`) },
+        create: { id: catalogId('micro', `${level.grade}:${course.title}`), type: CatalogItemType.MICRO_CREDENTIAL,
+          title: course.title, description: course.description, provider: 'FutuRoute Mikroyeterlilik Kataloğu', url: '/student/programs',
+          level: level.grade, duration: 'Sınıf programına bağlı', minGrade: grade, maxGrade: grade,
+          domainTags: JSON.stringify(inferDomainTags(combined)), skillTags: JSON.stringify(course.skills), riasecTags: JSON.stringify(inferRiasecTags(combined)),
+          verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07' },
+        update: { title: course.title, description: course.description, skillTags: JSON.stringify(course.skills),
+          domainTags: JSON.stringify(inferDomainTags(combined)), riasecTags: JSON.stringify(inferRiasecTags(combined)),
+          verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07', isActive: true },
+      });
+    }
+  }
+  for (const category of ELECTIVE_CATEGORIES) {
+    for (const course of category.courses) {
+      const combined = `${category.title} ${course.title} ${course.description} ${course.tags.join(' ')}`;
+      await prisma.catalogItem.upsert({
+        where: { id: catalogId('elective', `${category.id}:${course.title}`) },
+        create: { id: catalogId('elective', `${category.id}:${course.title}`), type: CatalogItemType.MICRO_CREDENTIAL,
+          title: course.title, description: course.description, provider: 'FutuRoute Seçmeli Mikroyeterlilik Kataloğu', url: '/student/programs',
+          level: course.level, duration: course.duration, minGrade: 9, maxGrade: 12,
+          domainTags: JSON.stringify(inferDomainTags(combined)), skillTags: JSON.stringify(course.tags), riasecTags: JSON.stringify(inferRiasecTags(combined)),
+          verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07' },
+        update: { title: course.title, description: course.description, level: course.level, duration: course.duration,
+          domainTags: JSON.stringify(inferDomainTags(combined)), skillTags: JSON.stringify(course.tags), riasecTags: JSON.stringify(inferRiasecTags(combined)),
+          verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07', isActive: true },
+      });
+    }
+  }
+  const programs = await prisma.careerProgram.findMany();
+  for (const program of programs) {
+    const combined = `${program.title} ${program.description} ${program.category} ${program.requiredSkills}`;
+    await prisma.catalogItem.upsert({
+      where: { id: catalogId('career', program.id) },
+      create: { id: catalogId('career', program.id), type: CatalogItemType.CAREER_PROGRAM, title: program.title,
+        description: program.description, provider: program.provider || 'FutuRoute Kariyer Programları', url: program.url?.startsWith('http') ? program.url : '/student/programs',
+        level: `${program.minGrade}. sınıf ve üzeri`, duration: program.durationInfo || program.duration, minGrade: program.minGrade, maxGrade: 12,
+        domainTags: program.relatedDomainTags !== '[]' ? program.relatedDomainTags : JSON.stringify(inferDomainTags(combined)),
+        skillTags: program.requiredSkills, riasecTags: JSON.stringify(inferRiasecTags(combined)),
+        verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07' },
+      update: { title: program.title, description: program.description, provider: program.provider || 'FutuRoute Kariyer Programları',
+        level: `${program.minGrade}. sınıf ve üzeri`, duration: program.durationInfo || program.duration,
+        domainTags: program.relatedDomainTags !== '[]' ? program.relatedDomainTags : JSON.stringify(inferDomainTags(combined)),
+        skillTags: program.requiredSkills, riasecTags: JSON.stringify(inferRiasecTags(combined)),
+        verificationStatus: CatalogVerificationStatus.VERIFIED, verifiedAt, verifiedBy: 'seed:2026-08-07', isActive: true },
+    });
+  }
+}
+
 async function main() {
   console.log('🌱 Veritabanı tohumlama (seed) işlemi başlatılıyor...');
 
   // Eğer veritabanı doluysa ve FORCE_SEED istenmemişse seed işlemini atla (Vercel deploy'larda verileri koru)
   const userCount = await prisma.user.count();
   if (userCount > 0 && process.env.FORCE_SEED !== 'true') {
+    await syncVerifiedCatalog();
     console.log('✅ Veritabanında zaten veriler mevcut. Seed işlemi atlanıyor. (Yeniden kurmak için FORCE_SEED=true yapabilirsiniz)');
     return;
   }
@@ -33,6 +117,7 @@ async function main() {
   await prisma.recommendation.deleteMany();
   await prisma.favoriteProgram.deleteMany();
   await prisma.careerProgram.deleteMany();
+  await prisma.catalogItem.deleteMany();
   await prisma.valueRanking.deleteMany();
   await prisma.valueItem.deleteMany();
   await prisma.lifeDomainEntry.deleteMany();
@@ -777,6 +862,8 @@ async function main() {
   for (const p of programsData) {
     await prisma.careerProgram.create({ data: p });
   }
+
+  await syncVerifiedCatalog();
 
   console.log('✅ Tohumlama (seed) işlemi başarıyla tamamlandı!');
 }

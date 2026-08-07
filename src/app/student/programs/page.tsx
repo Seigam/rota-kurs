@@ -28,7 +28,7 @@ export default async function StudentProgramsPage() {
             Kişiselleştirilmiş <span className="text-gradient">Öneri & Sertifika Programları</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-2xl mt-1">
-            4 katmanlı yapay zeka motorumuz; kişilik analizi, yaşam matrisi, değerler haritası ve sınıf bilginizi sentezleyerek aşağıdaki eşleşmeleri hesapladı.
+            Kural tabanlı eşleşme motoru; hedeflerinizi, ilgi etiketlerinizi, RIASEC profilinizi, sınıf seviyenizi ve gerçek ilerleme verinizi kullanır. MBTI ve Enneagram puanı değiştirmez.
           </p>
         </div>
 

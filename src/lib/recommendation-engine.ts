@@ -1,4 +1,4 @@
-import { CareerProgram, Profile, PersonalityResult, ValueRanking } from '@prisma/client';
+import { CareerInterestResult, CareerProgram, Profile, PersonalityResult, ValueRanking } from '@prisma/client';
 
 export interface ScoredProgram {
   program: CareerProgram;
@@ -10,7 +10,8 @@ export function generateRecommendations(
   profile: Profile,
   personality: PersonalityResult | null,
   values: ValueRanking[],
-  allPrograms: CareerProgram[]
+  allPrograms: CareerProgram[],
+  interestResult?: CareerInterestResult | null,
 ): ScoredProgram[] {
   const scoredList: ScoredProgram[] = [];
 
@@ -20,11 +21,15 @@ export function generateRecommendations(
   const hobbies = (profile.hobbies || '').toLowerCase();
   const subjects = (profile.favoriteSubjects || '').toLowerCase();
   
-  // MBTI ve Enneagram
-  const mbtiCode = personality?.mbtiType ? personality.mbtiType.substring(0, 4).toUpperCase() : '';
-  const ennDom = personality?.dominantEnneagram || '';
-  const ennNumMatch = ennDom.match(/\d+/);
-  const ennNum = ennNumMatch ? ennNumMatch[0] : '';
+  // MBTI/Enneagram yalnız öz-farkındalık deneyiminde kullanılır; eşleşme puanını etkilemez.
+  void personality;
+  const riasecScores = interestResult ? {
+    R: interestResult.realistic, I: interestResult.investigative, A: interestResult.artistic,
+    S: interestResult.social, E: interestResult.enterprising, C: interestResult.conventional,
+  } : null;
+  const topRiasec = riasecScores
+    ? Object.entries(riasecScores).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([code]) => code)
+    : [];
 
   // En önemli 3 değer
   const topValues = values.slice(0, 3).map((v) => v.valueName.toLowerCase());
@@ -41,19 +46,19 @@ export function generateRecommendations(
       score += 5;
     }
 
-    // 2. Kişilik Eşleşmesi (MBTI & Enneagram)
-    if (mbtiCode && prog.mbtiFit) {
-      if (prog.mbtiFit.toUpperCase().includes(mbtiCode)) {
-        score += 18;
-        matchReasons.push(`MBTI analitik düşünme yapınız (${mbtiCode}) ile tam uyum sağlıyor`);
-      }
-    }
-
-    if (ennNum && prog.enneagramFit) {
-      if (prog.enneagramFit.includes(ennNum) || prog.enneagramFit.toLowerCase().includes('tip ' + ennNum)) {
-        score += 12;
-        matchReasons.push(`Enneagram Tip ${ennNum} motivasyonunuzu doğrudan destekliyor`);
-      }
+    // 2. RIASEC ilgi eşleşmesi
+    const riasecText = `${prog.title} ${prog.description} ${prog.category}`.toLocaleLowerCase('tr-TR');
+    const programCodes = new Set<string>();
+    if (/mühendis|üretim|robot|elektronik|spor|tarım/.test(riasecText)) programCodes.add('R');
+    if (/bilim|araştır|veri|matematik|sağlık|analiz/.test(riasecText)) programCodes.add('I');
+    if (/sanat|tasarım|müzik|medya|yaratıcı/.test(riasecText)) programCodes.add('A');
+    if (/eğitim|rehber|sosyal|iletişim|sağlık/.test(riasecText)) programCodes.add('S');
+    if (/girişim|lider|yönetim|pazar|iş dünyası/.test(riasecText)) programCodes.add('E');
+    if (/finans|istatistik|plan|operasyon|kayıt/.test(riasecText)) programCodes.add('C');
+    const matchingCodes = topRiasec.filter((code) => programCodes.has(code));
+    if (matchingCodes.length > 0) {
+      score += matchingCodes.length * 8;
+      matchReasons.push(`RIASEC ilgi profilinizdeki ${matchingCodes.join('-')} alanlarıyla örtüşüyor`);
     }
 
     // 3. Hedef Meslek & İlgi Alanları Eşleşmesi

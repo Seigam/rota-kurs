@@ -1,449 +1,194 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { EntryType, LifeDomain } from '@prisma/client';
-import { runCourseRecommendationAgent } from '@/lib/ai-agent';
-import { buildCatalogContext } from '@/lib/catalog-query';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
-const DOMAIN_LABELS: Record<string, string> = {
-  CAREER: 'Kariyer & Mesleki Gelişim',
-  ACADEMIC: 'Akademik & Okul',
-  PERSONAL_DEV: 'Kişisel Gelişim',
-  SOCIAL: 'Sosyal & İlişkiler',
-  HEALTH: 'Sağlık & Yaşam Tarzı',
-  FINANCIAL: 'Finansal Farkındalık',
-  HOBBIES_LEISURE: 'Hobiler & Boş Zaman',
-  HEALTH_LIFESTYLE: 'Sağlık & Yaşam',
-  SOCIAL_EMOTIONAL: 'Sosyal & Duygusal',
+import { prisma } from '@/lib/prisma';
+import { goalTimeHorizonSchema } from '@/lib/ai/contracts';
+import { rejectInvalidOrigin, requireStudentApi } from '@/lib/student-api';
+
+type PlanStep = {
+  id: string;
+  text: string;
+  phase?: string;
+  isCompleted?: boolean;
+  status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  dueDate?: string | null;
+  startDate?: string | null;
+  timeRange?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  isAllDay?: boolean;
+  color?: string;
 };
 
+const stepSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  text: z.string().trim().min(1).max(600),
+  phase: z.string().max(30).optional(),
+  isCompleted: z.boolean().optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+  dueDate: z.string().max(40).nullable().optional(),
+  startDate: z.string().max(40).nullable().optional(),
+  timeRange: z.string().max(80).nullable().optional(),
+  startTime: z.string().max(20).nullable().optional(),
+  endTime: z.string().max(20).nullable().optional(),
+  isAllDay: z.boolean().optional(),
+  color: z.string().max(30).optional(),
+}).passthrough();
 
-export async function GET(request: NextRequest) {
+const saveGoalSchema = z.object({
+  id: z.string().uuid().optional(),
+  domain: z.nativeEnum(LifeDomain),
+  timeHorizon: goalTimeHorizonSchema,
+  wishText: z.string().trim().min(3).max(500),
+  selectedGoal: z.string().trim().min(3).max(600),
+  planSteps: z.array(stepSchema).max(30).default([]),
+}).strict();
+
+const patchGoalSchema = z.object({
+  action: z.enum(['DELETE', 'TOGGLE_STEP', 'UPDATE_STEP_STATUS', 'UPDATE_STEP_DATE', 'ADD_STEP']),
+  goalItemId: z.string().uuid(),
+  stepId: z.string().max(120).optional(),
+  newStatus: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+  stepText: z.string().trim().min(1).max(600).optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+  dueDate: z.string().max(40).nullable().optional(),
+  startDate: z.string().max(40).nullable().optional(),
+  timeRange: z.string().max(80).nullable().optional(),
+  startTime: z.string().max(20).nullable().optional(),
+  endTime: z.string().max(20).nullable().optional(),
+  isAllDay: z.boolean().optional(),
+  color: z.string().max(30).optional(),
+}).strict();
+
+function parseSteps(raw: string): PlanStep[] {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
-    }
+    const result = z.array(stepSchema).safeParse(JSON.parse(raw || '[]'));
+    return result.success ? result.data : [];
+  } catch { return []; }
+}
 
-    const profile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
-      include: {
-        goalPlanItems: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Öğrenci profili bulunamadı' }, { status: 404 });
-    }
-
-    const goals = profile.goalPlanItems.map((item) => ({
-      id: item.id,
-      domain: item.domain,
-      wishText: item.wishText,
-      selectedGoal: item.selectedGoal,
-      planSteps: JSON.parse(item.planSteps || '[]'),
-      isCompleted: item.isCompleted,
-      xpAwarded: item.xpAwarded,
-      createdAt: item.createdAt,
-    }));
-
-    return NextResponse.json({
-      goals,
-      experiencePoints: profile.experiencePoints || 0,
-      currentLevel: profile.currentLevel || 1,
-    });
-  } catch (err) {
-    console.error('GET goals error:', err);
-    return NextResponse.json({ error: 'Hedefler alınırken hata oluştu' }, { status: 500 });
-  }
+export async function GET() {
+  const auth = await requireStudentApi();
+  if (auth.response) return auth.response;
+  const profile = await prisma.profile.findUnique({
+    where: { id: auth.context.profileId },
+    select: { experiencePoints: true, currentLevel: true, goalPlanItems: { orderBy: { createdAt: 'desc' } } },
+  });
+  if (!profile) return NextResponse.json({ error: 'Öğrenci profili bulunamadı.' }, { status: 404 });
+  return NextResponse.json({
+    goals: profile.goalPlanItems.map((item) => ({ ...item, planSteps: parseSteps(item.planSteps) })),
+    experiencePoints: profile.experiencePoints,
+    currentLevel: profile.currentLevel,
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
-    }
+  const originError = rejectInvalidOrigin(request);
+  if (originError) return originError;
+  const auth = await requireStudentApi();
+  if (auth.response) return auth.response;
+  const parsed = saveGoalSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ code: 'INVALID_INPUT', error: 'Hedef alanları geçersiz.', details: parsed.error.flatten().fieldErrors }, { status: 400 });
 
-    const profile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
+  const payload = parsed.data;
+  if (payload.id) {
+    const result = await prisma.goalPlanItem.updateMany({
+      where: { id: payload.id, studentId: auth.context.profileId },
+      data: { domain: payload.domain, timeHorizon: payload.timeHorizon, wishText: payload.wishText, selectedGoal: payload.selectedGoal, planSteps: JSON.stringify(payload.planSteps) },
     });
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Öğrenci profili bulunamadı' }, { status: 404 });
-    }
-
-    const { id, domain, wishText, selectedGoal, planSteps } = await request.json();
-
-    if (!domain || !wishText || !selectedGoal) {
-      return NextResponse.json({ error: 'Eksik bilgi: Alan, istek ve hedef zorunludur' }, { status: 400 });
-    }
-
-    const stepsString = JSON.stringify(planSteps || []);
-
-    let goalItem;
-    if (id) {
-      goalItem = await prisma.goalPlanItem.update({
-        where: { id },
-        data: {
-          domain,
-          wishText,
-          selectedGoal,
-          planSteps: stepsString,
-        },
-      });
-    } else {
-      goalItem = await prisma.goalPlanItem.create({
-        data: {
-          studentId: profile.id,
-          domain,
-          wishText,
-          selectedGoal,
-          planSteps: stepsString,
-          xpAwarded: 100,
-        },
-      });
-    }
-
-    // Ayrıca yönlendirme kontrolünün (hasCompletedDomains) başarılı geçmesi için LifeDomainEntry kaydı da upsert edelim
-    const domainEnum = domain as LifeDomain;
-    if (Object.values(LifeDomain).includes(domainEnum)) {
-      await prisma.lifeDomainEntry.upsert({
-        where: {
-          studentId_domain_entryType: {
-            studentId: profile.id,
-            domain: domainEnum,
-            entryType: EntryType.GOAL,
-          },
-        },
-        update: { text: selectedGoal },
-        create: {
-          studentId: profile.id,
-          domain: domainEnum,
-          entryType: EntryType.GOAL,
-          text: selectedGoal,
-        },
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      goal: {
-        ...goalItem,
-        planSteps: JSON.parse(goalItem.planSteps),
-      },
-    });
-  } catch (err) {
-    console.error('POST goals error:', err);
-    return NextResponse.json(
-      {
-        error: 'Hedef kaydedilirken hata oluştu',
-        details: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500 }
-    );
+    if (result.count === 0) return NextResponse.json({ error: 'Hedef bulunamadı.' }, { status: 404 });
+  } else {
+    await prisma.goalPlanItem.create({ data: {
+      studentId: auth.context.profileId, domain: payload.domain, timeHorizon: payload.timeHorizon, wishText: payload.wishText,
+      selectedGoal: payload.selectedGoal, planSteps: JSON.stringify(payload.planSteps), xpAwarded: 100,
+    } });
   }
+
+  await prisma.lifeDomainEntry.upsert({
+    where: { studentId_domain_entryType: { studentId: auth.context.profileId, domain: payload.domain, entryType: EntryType.GOAL } },
+    update: { text: payload.selectedGoal },
+    create: { studentId: auth.context.profileId, domain: payload.domain, entryType: EntryType.GOAL, text: payload.selectedGoal },
+  });
+  const goal = await prisma.goalPlanItem.findFirst({
+    where: payload.id ? { id: payload.id, studentId: auth.context.profileId } : { studentId: auth.context.profileId, domain: payload.domain, selectedGoal: payload.selectedGoal },
+    orderBy: { createdAt: 'desc' },
+  });
+  return NextResponse.json({ success: true, goal: goal ? { ...goal, planSteps: parseSteps(goal.planSteps) } : null });
 }
 
 export async function PATCH(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
-    }
+  const originError = rejectInvalidOrigin(request);
+  if (originError) return originError;
+  const auth = await requireStudentApi();
+  if (auth.response) return auth.response;
+  const parsed = patchGoalSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ code: 'INVALID_INPUT', error: 'Güncelleme alanları geçersiz.' }, { status: 400 });
+  const input = parsed.data;
 
-    const profile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profil bulunamadı' }, { status: 404 });
-    }
-
-    const requestBody = await request.json();
-    const { action, goalItemId, stepId } = requestBody;
-
-    if (action === 'DELETE' && goalItemId) {
-      await prisma.goalPlanItem.delete({
-        where: { id: goalItemId },
-      });
-      return NextResponse.json({ success: true, message: 'Hedef silindi' });
-    }
-
-    if (action === 'TOGGLE_STEP' && goalItemId && stepId) {
-      const goalItem = await prisma.goalPlanItem.findUnique({
-        where: { id: goalItemId },
-      });
-
-      if (!goalItem) {
-        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
-      }
-
-      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(goalItem.planSteps || '[]');
-      let xpDelta = 0;
-
-      const updatedSteps = steps.map((s) => {
-        if (s.id === stepId) {
-          const nextState = !s.isCompleted;
-          xpDelta = nextState ? 25 : -25;
-          return { ...s, isCompleted: nextState };
-        }
-        return s;
-      });
-
-      const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.isCompleted);
-
-      // Eğer tüm adımlar yeni bittiyse ekstra +100 XP
-      if (allCompleted && !goalItem.isCompleted) {
-        xpDelta += 100;
-      }
-
-      const newXp = Math.max(0, (profile.experiencePoints || 0) + xpDelta);
-      const newLevel = Math.floor(newXp / 200) + 1;
-
-      await prisma.$transaction([
-        prisma.goalPlanItem.update({
-          where: { id: goalItemId },
-          data: {
-            planSteps: JSON.stringify(updatedSteps),
-            isCompleted: allCompleted,
-          },
-        }),
-        prisma.profile.update({
-          where: { id: profile.id },
-          data: {
-            experiencePoints: newXp,
-            currentLevel: newLevel,
-          },
-        }),
-      ]);
-
-      // Geri Bildirim Döngüsü: Hedef tamamlandığında AI'dan yeni kurs önerisi al
-      let newRecommendations: any[] = [];
-      if (allCompleted && !goalItem.isCompleted) {
-        try {
-          const inProgressSteps = updatedSteps
-            .filter((s) => s.status === 'IN_PROGRESS')
-            .map((s) => s.text);
-          const todoSteps = updatedSteps
-            .filter((s) => !s.isCompleted && s.status !== 'IN_PROGRESS')
-            .map((s) => s.text);
-          const allStepTexts = updatedSteps.map((s) => s.text);
-
-          const domainLabel = DOMAIN_LABELS[goalItem.domain] || goalItem.domain;
-
-          // Platform katalogundan ilgili dersleri getir
-          const catalogContext = await buildCatalogContext({
-            grade: profile.grade,
-            domain: goalItem.domain,
-            profileId: profile.id,
-          });
-
-          const aiRecs = await runCourseRecommendationAgent(
-            goalItem.domain,
-            domainLabel,
-            inProgressSteps.length > 0 ? inProgressSteps : allStepTexts.slice(0, 2),
-            todoSteps.length > 0 ? todoSteps : allStepTexts.slice(2),
-            profile.userId,
-            catalogContext
-          );
-          newRecommendations = aiRecs;
-        } catch (aiErr) {
-          // AI hatası hedef tamamlamayı engellemez
-          console.error('Geri bildirim AI öneri hatası:', aiErr);
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        steps: updatedSteps,
-        isCompleted: allCompleted,
-        xpDelta,
-        experiencePoints: newXp,
-        currentLevel: newLevel,
-        newRecommendations: newRecommendations.length > 0 ? newRecommendations : undefined,
-      });
-    }
-
-
-    if (action === 'UPDATE_STEP_STATUS' && goalItemId && stepId && requestBody.newStatus) {
-      const { newStatus } = requestBody;
-      const goalItem = await prisma.goalPlanItem.findUnique({
-        where: { id: goalItemId },
-      });
-
-      if (!goalItem) {
-        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
-      }
-
-      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(
-        goalItem.planSteps || '[]'
-      );
-      let xpDelta = 0;
-
-      const updatedSteps = steps.map((s) => {
-        if (s.id === stepId) {
-          const wasDone = s.status === 'DONE' || s.isCompleted === true;
-          const willBeDone = newStatus === 'DONE';
-          if (!wasDone && willBeDone) {
-            xpDelta += 25;
-          } else if (wasDone && !willBeDone) {
-            xpDelta -= 25;
-          }
-          return {
-            ...s,
-            status: newStatus,
-            isCompleted: willBeDone,
-          };
-        }
-        return s;
-      });
-
-      const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.status === 'DONE' || s.isCompleted);
-
-      if (allCompleted && !goalItem.isCompleted) {
-        xpDelta += 100;
-      }
-
-      const newXp = Math.max(0, (profile.experiencePoints || 0) + xpDelta);
-      const newLevel = Math.floor(newXp / 200) + 1;
-
-      await prisma.$transaction([
-        prisma.goalPlanItem.update({
-          where: { id: goalItemId },
-          data: {
-            planSteps: JSON.stringify(updatedSteps),
-            isCompleted: allCompleted,
-          },
-        }),
-        prisma.profile.update({
-          where: { id: profile.id },
-          data: {
-            experiencePoints: newXp,
-            currentLevel: newLevel,
-          },
-        }),
-      ]);
-
-      return NextResponse.json({
-        success: true,
-        steps: updatedSteps,
-        isCompleted: allCompleted,
-        experiencePoints: newXp,
-        currentLevel: newLevel,
-        xpDelta,
-      });
-    }
-
-    if (action === 'UPDATE_STEP_DATE' && goalItemId && stepId) {
-      const { dueDate, startDate, timeRange, startTime, endTime, isAllDay, color } = requestBody;
-      const goalItem = await prisma.goalPlanItem.findUnique({
-        where: { id: goalItemId },
-      });
-
-      if (!goalItem) {
-        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
-      }
-
-      const steps: Array<any> = JSON.parse(
-        goalItem.planSteps || '[]'
-      );
-
-      const updatedSteps = steps.map((s) => {
-        if (s.id === stepId) {
-          return {
-            ...s,
-            dueDate: dueDate !== undefined ? (dueDate || null) : s.dueDate,
-            startDate: startDate !== undefined ? (startDate || null) : s.startDate,
-            timeRange: timeRange !== undefined ? (timeRange || null) : s.timeRange,
-            startTime: startTime !== undefined ? (startTime || null) : s.startTime,
-            endTime: endTime !== undefined ? (endTime || null) : s.endTime,
-            isAllDay: isAllDay !== undefined ? isAllDay : s.isAllDay,
-            color: color !== undefined ? color : s.color,
-          };
-        }
-        return s;
-      });
-
-      await prisma.goalPlanItem.update({
-        where: { id: goalItemId },
-        data: {
-          planSteps: JSON.stringify(updatedSteps),
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        steps: updatedSteps,
-      });
-    }
-
-    if (action === 'ADD_STEP' && goalItemId && requestBody.stepText) {
-      const { stepText, status = 'TODO' } = requestBody;
-      const goalItem = await prisma.goalPlanItem.findUnique({
-        where: { id: goalItemId },
-      });
-
-      if (!goalItem) {
-        return NextResponse.json({ error: 'Hedef bulunamadı' }, { status: 404 });
-      }
-
-      const steps: Array<{ id: string; text: string; isCompleted?: boolean; status?: string }> = JSON.parse(
-        goalItem.planSteps || '[]'
-      );
-      let xpDelta = status === 'DONE' ? 25 : 0;
-
-      const newStepItem = {
-        id: `step_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        text: stepText.trim(),
-        status: status,
-        isCompleted: status === 'DONE',
-      };
-
-      const updatedSteps = [...steps, newStepItem];
-      const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.status === 'DONE' || s.isCompleted);
-
-      if (allCompleted && !goalItem.isCompleted) {
-        xpDelta += 100;
-      }
-
-      const newXp = Math.max(0, (profile.experiencePoints || 0) + xpDelta);
-      const newLevel = Math.floor(newXp / 200) + 1;
-
-      await prisma.$transaction([
-        prisma.goalPlanItem.update({
-          where: { id: goalItemId },
-          data: {
-            planSteps: JSON.stringify(updatedSteps),
-            isCompleted: allCompleted,
-          },
-        }),
-        prisma.profile.update({
-          where: { id: profile.id },
-          data: {
-            experiencePoints: newXp,
-            currentLevel: newLevel,
-          },
-        }),
-      ]);
-
-      return NextResponse.json({
-        success: true,
-        steps: updatedSteps,
-        newStep: newStepItem,
-        isCompleted: allCompleted,
-        experiencePoints: newXp,
-        currentLevel: newLevel,
-        xpDelta,
-      });
-    }
-
-    return NextResponse.json({ error: 'Geçersiz işlem' }, { status: 400 });
-  } catch (err) {
-    console.error('PATCH goals error:', err);
-    return NextResponse.json({ error: 'Hedef güncellenirken hata oluştu' }, { status: 500 });
+  if (input.action === 'DELETE') {
+    const result = await prisma.goalPlanItem.deleteMany({ where: { id: input.goalItemId, studentId: auth.context.profileId } });
+    return result.count === 0
+      ? NextResponse.json({ error: 'Hedef bulunamadı.' }, { status: 404 })
+      : NextResponse.json({ success: true, message: 'Hedef silindi.' });
   }
+
+  const goalItem = await prisma.goalPlanItem.findFirst({ where: { id: input.goalItemId, studentId: auth.context.profileId } });
+  if (!goalItem) return NextResponse.json({ error: 'Hedef bulunamadı.' }, { status: 404 });
+  const steps = parseSteps(goalItem.planSteps);
+
+  if (input.action === 'UPDATE_STEP_DATE' && input.stepId) {
+    const updatedSteps = steps.map((step) => step.id === input.stepId ? {
+      ...step,
+      dueDate: input.dueDate !== undefined ? input.dueDate : step.dueDate,
+      startDate: input.startDate !== undefined ? input.startDate : step.startDate,
+      timeRange: input.timeRange !== undefined ? input.timeRange : step.timeRange,
+      startTime: input.startTime !== undefined ? input.startTime : step.startTime,
+      endTime: input.endTime !== undefined ? input.endTime : step.endTime,
+      isAllDay: input.isAllDay !== undefined ? input.isAllDay : step.isAllDay,
+      color: input.color !== undefined ? input.color : step.color,
+    } : step);
+    await prisma.goalPlanItem.updateMany({ where: { id: input.goalItemId, studentId: auth.context.profileId }, data: { planSteps: JSON.stringify(updatedSteps) } });
+    return NextResponse.json({ success: true, steps: updatedSteps });
+  }
+
+  let xpDelta = 0;
+  let updatedSteps = steps;
+  if (input.action === 'TOGGLE_STEP' && input.stepId) {
+    updatedSteps = steps.map((step) => {
+      if (step.id !== input.stepId) return step;
+      const done = !(step.status === 'DONE' || step.isCompleted);
+      xpDelta = done ? 25 : -25;
+      return { ...step, status: done ? 'DONE' : 'TODO', isCompleted: done };
+    });
+  } else if (input.action === 'UPDATE_STEP_STATUS' && input.stepId && input.newStatus) {
+    updatedSteps = steps.map((step) => {
+      if (step.id !== input.stepId) return step;
+      const wasDone = step.status === 'DONE' || step.isCompleted === true;
+      const isDone = input.newStatus === 'DONE';
+      xpDelta = wasDone === isDone ? 0 : isDone ? 25 : -25;
+      return { ...step, status: input.newStatus, isCompleted: isDone };
+    });
+  } else if (input.action === 'ADD_STEP' && input.stepText) {
+    const status = input.status ?? 'TODO';
+    const newStep: PlanStep = { id: `step_${crypto.randomUUID()}`, text: input.stepText, status, isCompleted: status === 'DONE' };
+    updatedSteps = [...steps, newStep];
+    xpDelta = status === 'DONE' ? 25 : 0;
+  } else {
+    return NextResponse.json({ code: 'INVALID_INPUT', error: 'İşlem için gerekli alanlar eksik.' }, { status: 400 });
+  }
+
+  const allCompleted = updatedSteps.length > 0 && updatedSteps.every((step) => step.status === 'DONE' || step.isCompleted);
+  if (allCompleted && !goalItem.isCompleted) xpDelta += 100;
+  if (!allCompleted && goalItem.isCompleted) xpDelta -= 100;
+  const profile = await prisma.profile.findUnique({ where: { id: auth.context.profileId }, select: { experiencePoints: true } });
+  if (!profile) return NextResponse.json({ error: 'Öğrenci profili bulunamadı.' }, { status: 404 });
+  const newXp = Math.max(0, profile.experiencePoints + xpDelta);
+  const newLevel = Math.floor(newXp / 200) + 1;
+  await prisma.$transaction([
+    prisma.goalPlanItem.updateMany({ where: { id: input.goalItemId, studentId: auth.context.profileId }, data: { planSteps: JSON.stringify(updatedSteps), isCompleted: allCompleted } }),
+    prisma.profile.update({ where: { id: auth.context.profileId }, data: { experiencePoints: newXp, currentLevel: newLevel } }),
+  ]);
+  return NextResponse.json({ success: true, steps: updatedSteps, isCompleted: allCompleted, xpDelta,
+    experiencePoints: newXp, currentLevel: newLevel });
 }

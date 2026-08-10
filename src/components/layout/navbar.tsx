@@ -92,6 +92,12 @@ export function Navbar() {
                       Ders Rotası
                     </Link>
                     <Link
+                      href="/student/interests"
+                      className={`text-sm font-medium transition-colors hover:text-purple-400 ${pathname.startsWith('/student/interests') ? 'text-purple-400 font-semibold' : 'text-gray-300'}`}
+                    >
+                      İlgi Profili
+                    </Link>
+                    <Link
                       href="/student/profile"
                       className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/profile') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
                         }`}

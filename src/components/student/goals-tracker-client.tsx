@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { AiFeedback } from '@/components/student/ai-feedback';
+import { getGoalTimeHorizon, type GoalTimeHorizonValue } from '@/lib/goal-time-horizon';
 
 import {
   Target, Award, CheckCircle2, Circle, Sparkles, Trash2,
@@ -40,6 +42,7 @@ interface PlanStepItem {
 interface GoalPlanData {
   id: string;
   domain: string;
+  timeHorizon?: GoalTimeHorizonValue | null;
   wishText: string;
   selectedGoal: string;
   planSteps: PlanStepItem[];
@@ -604,6 +607,11 @@ export function GoalsTrackerClient() {
                 >
                   <Target className="w-3.5 h-3.5 text-amber-400" />
                   <span className="font-semibold line-clamp-1 max-w-[280px]">{g.selectedGoal}</span>
+                  {g.timeHorizon && (
+                    <span className="whitespace-nowrap rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold text-cyan-200">
+                      {getGoalTimeHorizon(g.timeHorizon).label} · {getGoalTimeHorizon(g.timeHorizon).rangeLabel}
+                    </span>
+                  )}
                   <button
                     onClick={() => handleDeleteGoal(g.id)}
                     className="text-gray-400 hover:text-rose-400 transition-colors ml-1"
@@ -900,9 +908,10 @@ interface CourseRecommendation {
   platform: string;
   level: string;
   duration: string;
-  relatedStep: string;
+  relatedStep?: string;
   reason: string;
-  url: string;
+  url?: string | null;
+  verificationStatus: 'VERIFIED';
 }
 
 function CourseRecommendationsSection({
@@ -914,19 +923,9 @@ function CourseRecommendationsSection({
 }) {
   const [recs, setRecs] = useState<CourseRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [resultMeta, setResultMeta] = useState<{ requestId?: string; sourceMode?: string; warnings: string[] }>({ warnings: [] });
 
   const domainInfo = DOMAINS_LIST.find((d) => d.id === activeDomain);
-
-  const inProgressSteps: string[] = [];
-  const todoSteps: string[] = [];
-
-  domainGoals.forEach((goal) => {
-    (goal.planSteps || []).forEach((step) => {
-      const status = step.status || (step.isCompleted ? 'DONE' : 'TODO');
-      if (status === 'IN_PROGRESS') inProgressSteps.push(step.text);
-      else if (status === 'TODO') todoSteps.push(step.text);
-    });
-  });
 
   const fetchRecommendations = async () => {
     setLoading(true);
@@ -934,16 +933,12 @@ function CourseRecommendationsSection({
       const res = await fetch('/api/student/ai/course-recommendations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          domain: activeDomain,
-          domainLabel: domainInfo?.label || activeDomain,
-          inProgressSteps,
-          todoSteps,
-        }),
+        body: JSON.stringify({ domain: activeDomain }),
       });
       const data = await res.json();
-      if (res.ok && data.recommendations) {
-        setRecs(data.recommendations);
+      if (res.ok && data.data?.recommendations) {
+        setRecs(data.data.recommendations);
+        setResultMeta({ requestId: data.requestId, sourceMode: data.sourceMode, warnings: data.warnings ?? [] });
       }
     } catch (err) {
       console.error('Kurs önerileri alınamadı:', err);
@@ -979,8 +974,14 @@ function CourseRecommendationsSection({
               Akıllı Kurs & Eğitim Kaynağı Önerileri
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Kanban panonuzdaki &apos;Yapılacaklar&apos; sütununuzu hızlandıracak seçilmiş ücretsiz ve sertifikalı eğitimler
+              Yalnız doğrulanmış FutuRoute kataloğundan seçilen eğitimler
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">Doğrulanmış katalog</span>
+              {resultMeta.sourceMode && <span className="text-[10px] text-gray-400">{resultMeta.sourceMode === 'model' ? 'AI önerisi' : 'Kural tabanlı eşleşme'}</span>}
+              <AiFeedback requestId={resultMeta.requestId} />
+            </div>
+            {resultMeta.warnings.map((warning) => <p key={warning} className="mt-1 text-[10px] text-amber-300">{warning}</p>)}
           </div>
         </div>
 
@@ -1032,7 +1033,7 @@ function CourseRecommendationsSection({
                 </h4>
 
                 {/* İlişkili Görev */}
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+                {rec.relatedStep && <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
                   <Target className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-[10px] font-bold text-amber-300 block">İlişkili Yapılacak Görev:</span>
@@ -1040,7 +1041,7 @@ function CourseRecommendationsSection({
                       {rec.relatedStep}
                     </p>
                   </div>
-                </div>
+                </div>}
 
                 {/* Açıklama */}
                 <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">
@@ -1055,15 +1056,17 @@ function CourseRecommendationsSection({
                   <span className="truncate max-w-[120px]">{rec.duration}</span>
                 </div>
 
-                <a
-                  href={rec.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all"
-                >
-                  <span>İncele</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                {rec.url && (
+                  <a
+                    href={rec.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-indigo-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                  >
+                    <span>İncele</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </div>
             </div>
           ))}

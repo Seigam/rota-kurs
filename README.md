@@ -70,9 +70,11 @@ Proje kök dizininde bulunan şablon **`.env.example`** dosyasını kopyalayarak
 Daha sonra `.env` dosyasını açıp kendi anahtarlarınızı girin (Ekip olarak aynı canlı veritabanını kullanıyorsanız, ortak veritabanı bağlantı linkini `.env` içindeki `DATABASE_URL` alanına yapıştırın):
 ```env
 DATABASE_URL="postgresql://kullanici:sifre@host:5432/veritabani?sslmode=require"
-NEXTAUTH_SECRET="rpg-kariyer-planlama-super-gizli-anahtar-2026"
+NEXTAUTH_SECRET="uzun-ve-rastgele-bir-deger-uretin"
 NEXTAUTH_URL="http://localhost:3000"
-GROQ_API_KEY="gsk_senin_groq_api_anahtarin"
+AI_API_URL="https://yz.gamehost.dev/v1"
+AI_MODEL="Qwen3.5-9B-servis-model-kimligi"
+AI_API_KEY="yalniz-sunucuda-saklanan-bearer-token"
 ```
 
 ### 3. Veritabanını Kurun ve Başlangıç Verilerini Yükleyin
@@ -82,11 +84,11 @@ GROQ_API_KEY="gsk_senin_groq_api_anahtarin"
 # 1) Prisma Client tiplerini oluşturun
 npx prisma generate
 
-# 2) Veritabanı tablolarını şemaya göre senkronize edin
-npx prisma db push
+# 2) Sürüm kontrollü migration'ları uygulayın
+npm run db:migrate:deploy
 
-# 3) Başlangıç verilerini (Admin hesabı, örnek rehberlik soruları vb.) yükleyin
-npx prisma db seed
+# 3) Başlangıç verilerini ayrı deployment işi olarak yükleyin
+npm run db:seed
 ```
 
 ### 4. Sunucuyu Başlatın

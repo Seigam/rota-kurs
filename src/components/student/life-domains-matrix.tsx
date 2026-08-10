@@ -4,17 +4,34 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Briefcase, BookOpen, Sparkles, Users, Heart, Coins, Save,
-  CheckCircle2, AlertCircle, Sparkle, Plus, Trash2, ArrowRight, Compass
+  CheckCircle2, AlertCircle, Sparkle, Plus, Trash2, ArrowRight, Compass, Clock
 } from 'lucide-react';
 import { LifeDomain } from '@prisma/client';
+import type { LucideIcon } from 'lucide-react';
+import { AiFeedback } from '@/components/student/ai-feedback';
+import { GOAL_TIME_HORIZONS, getGoalTimeHorizon, type GoalTimeHorizonValue } from '@/lib/goal-time-horizon';
 
 interface PlanStepItem {
   id: string;
   text: string;
+  phase?: 'PREPARE' | 'START' | 'PRACTICE' | 'REVIEW';
   isCompleted?: boolean;
 }
 
+interface GoalSuggestion {
+  id: string;
+  text: string;
+  whyItFits: string;
+}
+
+interface AiResultMeta {
+  requestId: string;
+  sourceMode: 'model' | 'template' | 'rule';
+  warnings: string[];
+}
+
 interface DomainPlanState {
+  timeHorizon: GoalTimeHorizonValue | '';
   wishText: string;
   selectedGoal: string;
   planSteps: PlanStepItem[];
@@ -25,7 +42,7 @@ const DOMAINS_INFO: Array<{
   key: LifeDomain;
   label: string;
   desc: string;
-  icon: any;
+  icon: LucideIcon;
   colorClass: string;
   bgClass: string;
 }> = [
@@ -87,7 +104,8 @@ export function LifeDomainsMatrix() {
   const [generatingSteps, setGeneratingSteps] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [aiGoalsMap, setAiGoalsMap] = useState<Record<string, string[]>>({});
+  const [aiGoalsMap, setAiGoalsMap] = useState<Record<string, GoalSuggestion[]>>({});
+  const [aiMetaMap, setAiMetaMap] = useState<Record<string, AiResultMeta>>({});
   const [domainStates, setDomainStates] = useState<Record<string, DomainPlanState>>({});
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -104,6 +122,7 @@ export function LifeDomainsMatrix() {
           data.goals.forEach((item: any) => {
             stateMap[item.domain] = {
               savedId: item.id,
+              timeHorizon: item.timeHorizon || '',
               wishText: item.wishText || '',
               selectedGoal: item.selectedGoal || '',
               planSteps: item.planSteps || [],
@@ -121,6 +140,7 @@ export function LifeDomainsMatrix() {
   }, []);
 
   const currentDomainState = domainStates[activeDomain] || {
+    timeHorizon: '',
     wishText: '',
     selectedGoal: '',
     planSteps: [],
@@ -131,6 +151,7 @@ export function LifeDomainsMatrix() {
   ) => {
     setDomainStates((prev) => {
       const existing: DomainPlanState = prev[activeDomain] || {
+        timeHorizon: '',
         wishText: '',
         selectedGoal: '',
         planSteps: [],
@@ -146,7 +167,19 @@ export function LifeDomainsMatrix() {
     });
   };
 
+  const handleTimeHorizonChange = (timeHorizon: GoalTimeHorizonValue) => {
+    if (currentDomainState.timeHorizon === timeHorizon) return;
+    updateCurrentState({ timeHorizon, selectedGoal: '', planSteps: [] });
+    setAiGoalsMap((prev) => ({ ...prev, [activeDomain]: [] }));
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
+
   const handleGenerateGoals = async () => {
+    if (!currentDomainState.timeHorizon) {
+      setErrorMsg('Lütfen önce hedefiniz için kısa, orta veya uzun vade seçin.');
+      return;
+    }
     if (!currentDomainState.wishText.trim()) {
       setErrorMsg('Lütfen önce bu alanda ne istediğinizi (hayalinizi) yazın!');
       return;
@@ -159,17 +192,20 @@ export function LifeDomainsMatrix() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'suggest_goals',
           domain: activeDomain,
+          timeHorizon: currentDomainState.timeHorizon,
           wishText: currentDomainState.wishText,
         }),
       });
 
       const data = await res.json();
-      if (res.ok && data.goals) {
+      if (res.ok && data.data?.goals) {
         setAiGoalsMap((prev) => ({
           ...prev,
-          [activeDomain]: data.goals,
+          [activeDomain]: data.data.goals,
         }));
+        setAiMetaMap((prev) => ({ ...prev, [activeDomain]: { requestId: data.requestId, sourceMode: data.sourceMode, warnings: data.warnings ?? [] } }));
       } else {
         setErrorMsg(data.error || 'Hedef önerisi alınamadı.');
       }
@@ -181,6 +217,7 @@ export function LifeDomainsMatrix() {
   };
 
   const handleSelectGoal = async (goalText: string) => {
+    if (!currentDomainState.timeHorizon) return;
     updateCurrentState({ selectedGoal: goalText });
     setGeneratingSteps(true);
     try {
@@ -188,14 +225,16 @@ export function LifeDomainsMatrix() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'plan_steps',
           domain: activeDomain,
-          wishText: currentDomainState.wishText,
+          timeHorizon: currentDomainState.timeHorizon,
           selectedGoal: goalText,
         }),
       });
       const data = await res.json();
-      if (res.ok && data.steps) {
-        updateCurrentState({ selectedGoal: goalText, planSteps: data.steps });
+      if (res.ok && data.data?.steps) {
+        updateCurrentState({ selectedGoal: goalText, planSteps: data.data.steps });
+        setAiMetaMap((prev) => ({ ...prev, [`${activeDomain}:plan`]: { requestId: data.requestId, sourceMode: data.sourceMode, warnings: data.warnings ?? [] } }));
       }
     } catch (err) {
       console.error('Generate steps error:', err);
@@ -227,6 +266,10 @@ export function LifeDomainsMatrix() {
   };
 
   const handleSaveDomain = async () => {
+    if (!currentDomainState.timeHorizon) {
+      setErrorMsg('Kaydetmeden önce hedefin zaman aralığını seçmelisiniz.');
+      return;
+    }
     if (!currentDomainState.wishText.trim() || !currentDomainState.selectedGoal.trim()) {
       setErrorMsg('Kaydetmek için istek ve hedef alanlarını doldurmalısınız.');
       return;
@@ -243,6 +286,7 @@ export function LifeDomainsMatrix() {
         body: JSON.stringify({
           id: currentDomainState.savedId,
           domain: activeDomain,
+          timeHorizon: currentDomainState.timeHorizon,
           wishText: currentDomainState.wishText,
           selectedGoal: currentDomainState.selectedGoal,
           planSteps: currentDomainState.planSteps.filter((s) => s.text.trim() !== ''),
@@ -274,6 +318,7 @@ export function LifeDomainsMatrix() {
   const activeInfo = DOMAINS_INFO.find((d) => d.key === activeDomain)!;
   const ActiveIcon = activeInfo.icon;
   const aiGoals = aiGoalsMap[activeDomain] || [];
+  const goalMeta = aiMetaMap[activeDomain];
 
   if (loading) {
     return (
@@ -363,10 +408,45 @@ export function LifeDomainsMatrix() {
           </button>
         </div>
 
-        {/* STEP 1: Wish / İstek */}
+        {/* STEP 1: Time Horizon */}
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>1. Hedefinizin Zaman Aralığını Seçin</span>
+          </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Hedef zaman aralığı">
+            {GOAL_TIME_HORIZONS.map((option) => {
+              const isSelected = currentDomainState.timeHorizon === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => handleTimeHorizonChange(option.value)}
+                  className={`rounded-2xl border p-4 text-left transition-all ${
+                    isSelected
+                      ? 'border-cyan-400 bg-cyan-500/15 text-white shadow-lg ring-1 ring-cyan-400'
+                      : 'border-white/10 bg-white/5 text-gray-300 hover:border-cyan-500/40 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-extrabold">{option.label}</span>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-cyan-300" />}
+                  </div>
+                  <p className="mt-1 text-xs font-bold text-cyan-200">{option.rangeLabel}</p>
+                  <p className="mt-2 text-[11px] leading-relaxed text-gray-400">{option.description}</p>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-gray-500">Vade değiştirildiğinde önceki vadeye göre üretilmiş hedef ve adımlar temizlenir.</p>
+        </div>
+
+        {/* STEP 2: Wish / İstek */}
         <div className="space-y-3">
           <label className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
-            <span>1. Neyi İstiyorsunuz / Hayal Ediyorsunuz?</span>
+            <span>2. Neyi İstiyorsunuz / Hayal Ediyorsunuz?</span>
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
             <textarea
@@ -379,7 +459,7 @@ export function LifeDomainsMatrix() {
             <button
               type="button"
               onClick={handleGenerateGoals}
-              disabled={generatingGoals}
+              disabled={generatingGoals || !currentDomainState.timeHorizon}
               className="glow-button px-6 py-3 rounded-2xl text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 whitespace-nowrap self-start sm:self-center"
             >
               {generatingGoals ? (
@@ -394,21 +474,30 @@ export function LifeDomainsMatrix() {
           </div>
         </div>
 
-        {/* STEP 2: AI Suggested Goals */}
+        {/* STEP 3: AI Suggested Goals */}
         {aiGoals.length > 0 && (
           <div className="space-y-3 animate-fadeIn">
             <label className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
               <Sparkle className="w-4 h-4" />
-              <span>2. Önerilen SMART Hedeflerden Birini Seçin (veya Aşağıda Düzenleyin)</span>
+              <span>3. Önerilen SMART Hedeflerden Birini Seçin (veya Aşağıda Düzenleyin)</span>
             </label>
+            {goalMeta && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] text-indigo-200">
+                  {goalMeta.sourceMode === 'model' ? 'AI önerisi' : goalMeta.sourceMode === 'template' ? 'Hazır şablon' : 'Kural tabanlı eşleşme'}
+                </span>
+                <AiFeedback requestId={goalMeta.requestId} />
+                {goalMeta.warnings.map((warning) => <p key={warning} className="w-full text-[11px] text-amber-300">{warning}</p>)}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {aiGoals.map((goal, idx) => {
-                const isSelected = currentDomainState.selectedGoal === goal;
+                const isSelected = currentDomainState.selectedGoal === goal.text;
                 return (
                   <button
-                    key={idx}
+                    key={goal.id}
                     type="button"
-                    onClick={() => handleSelectGoal(goal)}
+                    onClick={() => handleSelectGoal(goal.text)}
                     className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 text-xs leading-relaxed ${
                       isSelected
                         ? 'bg-indigo-600/20 border-indigo-400 text-white shadow-lg ring-1 ring-indigo-400'
@@ -421,7 +510,8 @@ export function LifeDomainsMatrix() {
                       </span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-400" />}
                     </div>
-                    <p className="font-medium">{goal}</p>
+                    <p className="font-medium">{goal.text}</p>
+                    <p className="text-[11px] text-gray-400">{goal.whyItFits}</p>
                   </button>
                 );
               })}
@@ -429,11 +519,16 @@ export function LifeDomainsMatrix() {
           </div>
         )}
 
-        {/* STEP 3: Selected SMART Goal */}
+        {/* STEP 4: Selected SMART Goal */}
         <div className="space-y-3">
           <label className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-2">
-            <span>Seçilen / Düzenlenen SMART Hedefiniz</span>
+            <span>4. Seçilen / Düzenlenen SMART Hedefiniz</span>
           </label>
+          {currentDomainState.timeHorizon && (
+            <span className="inline-flex rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-200">
+              {getGoalTimeHorizon(currentDomainState.timeHorizon).label} · {getGoalTimeHorizon(currentDomainState.timeHorizon).rangeLabel}
+            </span>
+          )}
           <input
             type="text"
             value={currentDomainState.selectedGoal}
@@ -443,11 +538,11 @@ export function LifeDomainsMatrix() {
           />
         </div>
 
-        {/* STEP 4: Action Plan Steps */}
+        {/* STEP 5: Action Plan Steps */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
-              <span>Bu Hedefe Ulaşmak İçin Adım Adım Eylem Planınız</span>
+              <span>5. Bu Hedefe Ulaşmak İçin Adım Adım Eylem Planınız</span>
               {generatingSteps && (
                 <span className="text-[10px] text-gray-400 font-normal animate-pulse">
                   (AI Adımlar Üretiyor...)

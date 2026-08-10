@@ -61,6 +61,43 @@ enum PlanColumn {
   WISH
 }
 
+enum GoalTimeHorizon {
+  SHORT_TERM
+  MEDIUM_TERM
+  LONG_TERM
+}
+
+enum AiTask {
+  SUGGEST_GOALS
+  PLAN_STEPS
+  RANK_CATALOG_ITEMS
+}
+
+enum AiSourceMode {
+  MODEL
+  TEMPLATE
+  RULE
+}
+
+enum AiGenerationStatus {
+  SUCCESS
+  FALLBACK
+  REJECTED
+  FAILED
+}
+
+enum CatalogItemType {
+  MICRO_CREDENTIAL
+  CAREER_PROGRAM
+  COURSE
+}
+
+enum CatalogVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 model User {
   id           String          @id @default(uuid())
   email        String          @unique
@@ -129,6 +166,10 @@ model Profile {
   recommendations  Recommendation[]
   personalityResult PersonalityResult?
   courseApprovals  CourseApprovalRequest[]
+  aiGenerations    AiGeneration[]
+  aiFeedback       AiFeedback[]
+  careerInterestResult CareerInterestResult?
+  aiRateLimitBuckets AiRateLimitBucket[]
 
   @@map("StudentProfile")
 }
@@ -303,6 +344,7 @@ model GoalPlanItem {
   id           String    @id @default(uuid())
   studentId    String
   domain       String
+  timeHorizon  GoalTimeHorizon?
   wishText     String
   selectedGoal String
   planSteps    String    // JSON string array of steps: [{ id: "1", text: "...", isCompleted: false }]
@@ -437,4 +479,99 @@ model CourseApprovalRequest {
   student        Profile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("CourseApprovalRequest")
+}
+
+model AiGeneration {
+  id               String             @id @default(uuid())
+  requestId        String             @unique
+  profileId        String
+  task             AiTask
+  model            String
+  promptVersion    String
+  schemaVersion    String
+  sourceMode       AiSourceMode
+  status           AiGenerationStatus
+  latencyMs        Int
+  inputHash        String
+  promptTokens     Int?
+  completionTokens Int?
+  fallbackReason   String?
+  safetyCategory   String?
+  createdAt        DateTime           @default(now())
+
+  profile          Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  feedback         AiFeedback?
+
+  @@index([profileId, createdAt])
+  @@index([task, createdAt])
+}
+
+model AiFeedback {
+  id           String       @id @default(uuid())
+  generationId String       @unique
+  profileId    String
+  helpful      Boolean
+  reasonCode   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  generation   AiGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, createdAt])
+}
+
+model AiRateLimitBucket {
+  key         String   @id
+  profileId   String
+  bucketType  String
+  count       Int      @default(0)
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
+
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, expiresAt])
+}
+
+model CareerInterestResult {
+  id            String   @id @default(uuid())
+  profileId     String   @unique
+  realistic     Int
+  investigative Int
+  artistic      Int
+  social        Int
+  enterprising  Int
+  conventional  Int
+  topCodes      String
+  version       String
+  completedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model CatalogItem {
+  id                 String                    @id
+  type               CatalogItemType
+  title              String
+  description        String
+  provider           String
+  url                String?
+  level              String?
+  duration           String?
+  minGrade           Int                       @default(9)
+  maxGrade           Int                       @default(12)
+  domainTags         String                    @default("[]")
+  skillTags          String                    @default("[]")
+  riasecTags         String                    @default("[]")
+  verificationStatus CatalogVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  isActive           Boolean                   @default(true)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([verificationStatus, isActive])
+  @@index([minGrade, maxGrade])
 }

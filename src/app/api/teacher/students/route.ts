@@ -10,8 +10,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Bu işlem için öğretmen veya yönetici yetkisi gereklidir.' }, { status: 403 });
     }
 
+    const allowedClassGroupIds = user.role === Role.TEACHER
+      ? (await prisma.teacherProfile.findUnique({
+          where: { userId: user.id },
+          select: { classGroups: { select: { id: true } } },
+        }))?.classGroups.map((group) => group.id) ?? []
+      : null;
+
     const students = await prisma.user.findMany({
-      where: { role: Role.STUDENT },
+      where: {
+        role: Role.STUDENT,
+        ...(allowedClassGroupIds ? { profile: { classGroupId: { in: allowedClassGroupIds } } } : {}),
+      },
       select: {
         id: true,
         name: true,
@@ -28,6 +38,12 @@ export async function GET() {
             counselorNotes: {
               orderBy: { createdAt: 'desc' },
               take: 1,
+            },
+            developmentAssessments: {
+              where: { status: 'COMPLETED' },
+              orderBy: { completedAt: 'desc' },
+              take: 1,
+              select: { completedAt: true, areaScores: { orderBy: { rank: 'asc' }, take: 1, select: { area: true, priorityScore: true } } },
             },
           },
         },

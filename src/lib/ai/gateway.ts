@@ -19,7 +19,7 @@ const DEFAULT_UPSTREAM_TIMEOUT_MS = 210_000;
 const MIN_UPSTREAM_TIMEOUT_MS = 30_000;
 const MAX_UPSTREAM_TIMEOUT_MS = 225_000;
 
-type AiConfig = { url: string; model: string; apiKey: string; jsonSchemaEnabled: boolean; timeoutMs: number };
+type AiConfig = { url: string; model: string; apiKey?: string; jsonSchemaEnabled: boolean; timeoutMs: number };
 type Usage = { prompt_tokens?: number; completion_tokens?: number };
 type CompletionResponse = {
   choices?: Array<{ message?: { content?: string } }>;
@@ -40,7 +40,10 @@ function loadConfig(): AiConfig {
   const url = process.env.AI_API_URL?.trim();
   const model = process.env.AI_MODEL?.trim();
   const apiKey = process.env.AI_API_KEY?.trim();
-  if (!url || !model || !apiKey) throw new Error('AI_API_URL, AI_MODEL ve AI_API_KEY zorunludur.');
+  if (!url || !model) throw new Error('AI_API_URL ve AI_MODEL zorunludur.');
+  if (!apiKey && process.env.NODE_ENV === 'production' && process.env.AI_ALLOW_ANONYMOUS !== 'true') {
+    throw new Error('Tokensiz AI servisi için üretimde AI_ALLOW_ANONYMOUS=true açıkça tanımlanmalıdır.');
+  }
   const parsedUrl = new URL(url);
   if (process.env.NODE_ENV === 'production' && parsedUrl.protocol !== 'https:') {
     throw new Error('Üretimde AI_API_URL HTTPS kullanmalıdır.');
@@ -54,7 +57,7 @@ function loadConfig(): AiConfig {
   return {
     url: parsedUrl.toString(),
     model,
-    apiKey,
+    apiKey: apiKey || undefined,
     jsonSchemaEnabled: process.env.AI_JSON_SCHEMA_ENABLED === 'true',
     timeoutMs,
   };
@@ -77,17 +80,17 @@ const BASE_POLICY = `Sen FutuRoute öğrenci rehberliği asistanısın. Yalnız 
 
 export const AI_TASKS = {
   suggestGoals: <T>(schema: z.ZodType<T>): TaskDefinition<T> => ({
-    task: AiTask.SUGGEST_GOALS, promptVersion: 'goals-v2.1-horizon', schemaVersion: '1.1', maxTokens: 512,
+    task: AiTask.SUGGEST_GOALS, promptVersion: 'goals-v2.2-horizon', schemaVersion: '1.1', maxTokens: 4096,
     outputSchema: schema, jsonSchema: goalJsonSchema,
     systemPrompt: `${BASE_POLICY} Tam üç SMART hedef ve her hedef için kısa uyum gerekçesi üret. Girdideki timeHorizon ve timeRange alanlarını zorunlu zaman sınırı olarak kullan; hedeflerin ölçüm ve tamamlanma süresini bu aralığa uygun yaz.`,
   }),
   planSteps: <T>(schema: z.ZodType<T>): TaskDefinition<T> => ({
-    task: AiTask.PLAN_STEPS, promptVersion: 'plan-v2.1-horizon', schemaVersion: '1.1', maxTokens: 768,
+    task: AiTask.PLAN_STEPS, promptVersion: 'plan-v2.2-horizon', schemaVersion: '1.1', maxTokens: 4096,
     outputSchema: schema, jsonSchema: planJsonSchema,
     systemPrompt: `${BASE_POLICY} Tam dört aşama üret: PREPARE, START, PRACTICE, REVIEW. Aşamaları girdideki timeHorizon ve timeRange içine dağıt; her adımda vadeye uygun somut bir zaman ifadesi kullan.`,
   }),
   rankCatalog: <T>(schema: z.ZodType<T>): TaskDefinition<T> => ({
-    task: AiTask.RANK_CATALOG_ITEMS, promptVersion: 'catalog-rank-v2.0', schemaVersion: '1.0', maxTokens: 1024,
+    task: AiTask.RANK_CATALOG_ITEMS, promptVersion: 'catalog-rank-v2.1', schemaVersion: '1.0', maxTokens: 4096,
     outputSchema: schema, jsonSchema: rankingJsonSchema,
     systemPrompt: `${BASE_POLICY} Yalnız verilen doğrulanmış katalog kimliklerinden en fazla beşini sırala. Başlık, URL veya sağlayıcı üretme.`,
   }),
@@ -158,9 +161,14 @@ export async function runAiTask<T>(args: {
     const remainingMs = Math.max(1, upstreamDeadline - Date.now());
     const timer = setTimeout(() => controller.abort(), remainingMs);
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Request-Id': requestId,
+      };
+      if (config.apiKey) headers.Authorization = `Bearer ${config.apiKey}`;
       response = await fetch(config.url, {
         method: 'POST', signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}`, 'X-Request-Id': requestId },
+        headers,
         body: JSON.stringify(body),
       });
     } catch (error) {

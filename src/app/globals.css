@@ -1,14 +1,78 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0f111a;
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+  --font-geist-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-geist-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --background: #fbf8f2;
+  --foreground: #172033;
+  --surface: #ffffff;
+  --surface-muted: #f6f2eb;
+  --surface-elevated: rgba(255, 255, 255, 0.92);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-ink: #3730a3;
+  --primary-soft: #eeecff;
+  --primary-shadow: #c9c5f8;
+  --secondary: #e96852;
+  --secondary-hover: #d85843;
+  --accent: #2f7047;
+  --accent-soft: #eaf3ec;
+  --warning: #8a4b06;
+  --warning-soft: #fff4df;
+  --danger: #a83b2c;
+  --danger-soft: #fff0ed;
+  --muted: #626a79;
+  --muted-subtle: #777e8b;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --border-color: #ded9cf;
+  --focus: #b45309;
+  --ambient-primary: rgba(79, 70, 229, 0.1);
+  --ambient-secondary: rgba(233, 104, 82, 0.11);
+  --ambient-accent: rgba(47, 112, 71, 0.08);
+  --shadow-color: rgba(35, 35, 58, 0.08);
+  --paper: var(--background);
+  --paper-strong: var(--surface);
+  --ink: var(--foreground);
+  --ink-soft: var(--muted);
+  --brand: var(--primary);
+  --brand-strong: var(--primary-ink);
+  --brand-soft: var(--primary-soft);
+  --coral: var(--secondary);
+  --sage: var(--accent-soft);
+  --paper-border: var(--border-color);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b0d14;
   --foreground: #f3f4f6;
+  --surface: #181c2b;
+  --surface-muted: #1e2336;
+  --surface-elevated: rgba(24, 28, 43, 0.9);
   --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #8b5cf6;
-  --accent: #10b981;
-  --card-bg: rgba(26, 29, 44, 0.7);
+  --primary-hover: #818cf8;
+  --primary-ink: #c7d2fe;
+  --primary-soft: rgba(99, 102, 241, 0.18);
+  --primary-shadow: rgba(99, 102, 241, 0.3);
+  --secondary: #f08a77;
+  --secondary-hover: #fb9b89;
+  --accent: #34d399;
+  --accent-soft: rgba(16, 185, 129, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(245, 158, 11, 0.15);
+  --danger: #fb7185;
+  --danger-soft: rgba(244, 63, 94, 0.14);
+  --muted: #b7bfce;
+  --muted-subtle: #929bad;
+  --card-bg: rgba(26, 29, 44, 0.74);
   --border-color: rgba(255, 255, 255, 0.1);
+  --focus: #fbbf24;
+  --ambient-primary: rgba(99, 102, 241, 0.15);
+  --ambient-secondary: rgba(139, 92, 246, 0.15);
+  --ambient-accent: rgba(16, 185, 129, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.35);
 }
 
 @theme inline {
@@ -17,14 +81,30 @@
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
+  --color-app-surface: var(--surface);
+  --color-app-surface-muted: var(--surface-muted);
+  --color-app-text: var(--foreground);
+  --color-app-muted: var(--muted);
+  --color-app-subtle: var(--muted-subtle);
+  --color-app-brand: var(--primary);
+  --color-app-brand-hover: var(--primary-hover);
+  --color-app-brand-ink: var(--primary-ink);
+  --color-app-brand-soft: var(--primary-soft);
+  --color-app-accent: var(--accent);
+  --color-app-accent-soft: var(--accent-soft);
+  --color-app-warning: var(--warning);
+  --color-app-warning-soft: var(--warning-soft);
+  --color-app-danger: var(--danger);
+  --color-app-danger-soft: var(--danger-soft);
+  --color-app-border: var(--border-color);
 }
 
 body {
-  background-color: #0b0d14;
-  background-image: 
-    radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-    radial-gradient(at 90% 80%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(16, 185, 129, 0.08) 0px, transparent 60%);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(at 10% 20%, var(--ambient-primary) 0, transparent 50%),
+    radial-gradient(at 90% 80%, var(--ambient-secondary) 0, transparent 50%),
+    radial-gradient(at 50% 50%, var(--ambient-accent) 0, transparent 60%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -32,45 +112,374 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  transform: translateY(-180%);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.75rem 1rem;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(23, 32, 51, 0.18);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.paper-shell {
+  background:
+    radial-gradient(circle at 8% 2%, var(--ambient-secondary), transparent 28rem),
+    radial-gradient(circle at 94% 18%, var(--ambient-primary), transparent 30rem),
+    var(--paper);
+  color: var(--ink);
+}
+
+.paper-card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--paper-border);
+  box-shadow: 0 18px 45px var(--shadow-color);
+}
+
+.soft-grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--primary) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 7%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.route-rail {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--brand) 0,
+    var(--brand) 8px,
+    transparent 8px,
+    transparent 14px
+  );
+}
+
 /* Glassmorphism & Custom Utilities */
 .glass-panel {
-  background: rgba(24, 28, 43, 0.65);
+  background: var(--surface-elevated);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px var(--shadow-color);
 }
 
 .glass-card {
-  background: rgba(30, 35, 54, 0.5);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(38, 44, 68, 0.65);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: var(--surface-elevated);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
   transform: translateY(-2px);
   box-shadow: 0 12px 28px -8px rgba(99, 102, 241, 0.25);
 }
 
 .glow-button {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 42%, transparent);
   transition: all 0.3s ease;
 }
 
 .glow-button:hover {
-  box-shadow: 0 6px 28px rgba(99, 102, 241, 0.6);
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--primary) 58%, transparent);
   transform: translateY(-1px);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #34d399 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #c084fc 50%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.theme-toggle__light,
+.theme-toggle__label-light {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-toggle__dark,
+html[data-theme="dark"] .theme-toggle__label-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-toggle__light,
+html[data-theme="dark"] .theme-toggle__label-light {
+  display: inline;
+}
+
+/* Legacy form compatibility while older screens move to semantic tokens. */
+html[data-theme="light"] main :is(h1, h2, h3, h4, h5, h6).text-white,
+html[data-theme="light"] main :is(label, input, textarea, select).text-white,
+html[data-theme="light"] main :is(.glass-panel, .glass-card) .text-white {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] main .text-gray-200,
+html[data-theme="light"] main .text-gray-300 {
+  color: #4b5563 !important;
+}
+
+html[data-theme="light"] main .text-gray-400,
+html[data-theme="light"] main .text-slate-400 {
+  color: var(--muted) !important;
+}
+
+html[data-theme="light"] main .text-gray-500,
+html[data-theme="light"] main .text-slate-500 {
+  color: var(--muted-subtle) !important;
+}
+
+html[data-theme="light"] main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select) {
+  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+  border-color: var(--border-color) !important;
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] main :is(input, textarea)::placeholder {
+  color: var(--muted-subtle) !important;
+  opacity: 1;
+}
+
+html[data-theme="light"] main option {
+  background: var(--surface) !important;
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] main :is(
+  [class~="bg-black/20"],
+  [class~="bg-black/30"],
+  [class~="bg-black/40"],
+  [class~="bg-white/5"],
+  [class~="bg-white/10"],
+  [class~="bg-white/15"]
+) {
+  background-color: color-mix(in srgb, var(--surface) 86%, transparent) !important;
+}
+
+html[data-theme="light"] main :is(
+  [class~="border-white/10"],
+  [class~="border-white/20"],
+  [class~="border-white/30"],
+  [class~="border-white/40"]
+) {
+  border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] main :is(
+  [class~="bg-white/5"],
+  [class~="bg-white/10"],
+  [class~="bg-white/15"]
+).text-white {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] main :is(.glow-button, [class~="bg-indigo-600"], [class~="bg-purple-600"], [class~="bg-emerald-600"], [class~="bg-red-600"], [class~="bg-rose-600"]).text-white,
+html[data-theme="light"] main :is(.glow-button, [class~="bg-indigo-600"], [class~="bg-purple-600"], [class~="bg-emerald-600"], [class~="bg-red-600"], [class~="bg-rose-600"]) .text-white {
+  color: #ffffff !important;
+}
+
+/* The roadmap uses the same paper palette in light mode and its original deep palette in dark mode. */
+html[data-theme="light"] .roadmap-theme :is(.text-white, .text-slate-950) {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="light"] .roadmap-theme :is(.text-slate-300, .text-slate-400) {
+  color: var(--muted) !important;
+}
+
+html[data-theme="light"] .roadmap-theme :is(.text-slate-500, .text-slate-600) {
+  color: var(--muted-subtle) !important;
+}
+
+html[data-theme="light"] .roadmap-theme :is(.text-indigo-200, .text-indigo-300, .text-indigo-400, .text-violet-300) {
+  color: var(--primary-ink) !important;
+}
+
+html[data-theme="light"] .roadmap-theme :is(.text-emerald-300, .text-emerald-400) {
+  color: var(--accent) !important;
+}
+
+html[data-theme="light"] .roadmap-theme [class~="bg-indigo-600"].text-white,
+html[data-theme="light"] .roadmap-theme [class~="bg-indigo-600"] .text-white {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .roadmap-theme [class~="bg-white"][class~="text-slate-950"] {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+/* The new paper UI is the light palette; these mappings express its dark pair. */
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#172033]"],
+  [class~="text-[#303849]"]
+) {
+  color: var(--foreground) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#555d6d]"],
+  [class~="text-[#626a79]"],
+  [class~="text-[#686f7d]"],
+  [class~="text-[#6b7280]"],
+  [class~="text-[#777e8b]"],
+  [class~="text-[#9ca3af]"]
+) {
+  color: var(--muted) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#3730a3]"],
+  [class~="text-[#4338ca]"],
+  [class~="text-[#4f46e5]"],
+  [class~="text-[#625ab3]"]
+) {
+  color: var(--primary-ink) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#24633b]"],
+  [class~="text-[#2f7047]"],
+  [class~="text-[#477455]"],
+  [class~="text-[#4c765b]"]
+) {
+  color: var(--accent) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#8a4b06]"],
+  [class~="text-[#a45a08]"]
+) {
+  color: var(--warning) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="text-[#a83b2c]"],
+  [class~="text-[#b84332]"],
+  [class~="text-[#c44d3b]"],
+  [class~="text-[#e05d48]"]
+) {
+  color: var(--danger) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="text-[#e96852]"] {
+  color: var(--secondary) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="bg-white"],
+  [class~="bg-white/60"],
+  [class~="bg-white/75"],
+  [class~="bg-white/80"]
+) {
+  background-color: var(--surface) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="bg-[#f6f2eb]"],
+  [class~="bg-[#f9f6f0]"],
+  [class~="bg-[#faf9ff]"],
+  [class~="bg-[#ebe7df]"]
+) {
+  background-color: var(--surface-muted) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="bg-[#eeecff]"] {
+  background-color: var(--primary-soft) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="bg-[#dce9df]"],
+  [class~="bg-[#eaf3ec]"]
+) {
+  background-color: var(--accent-soft) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="bg-[#fff0d9]"],
+  [class~="bg-[#fff4df]"]
+) {
+  background-color: var(--warning-soft) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="bg-[#fff0ed]"] {
+  background-color: var(--danger-soft) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="bg-[#4f46e5]"] {
+  background-color: var(--primary) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="bg-[#e96852]"] {
+  background-color: var(--secondary) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="border-[#ded9cf]"],
+  [class~="border-[#d8d2c8]"],
+  [class~="border-[#d9d3c8]"],
+  [class~="border-[#e1dcd3]"],
+  [class~="border-[#e6e1d8]"],
+  [class~="border-[#9f978a]"],
+  [class~="border-[#a8a19a]"],
+  [class~="border-[#bdb6a8]"],
+  [class~="border-[#cfc8bc]"]
+) {
+  border-color: var(--border-color) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="border-[#8e86dd]"],
+  [class~="border-[#aaa2e9]"],
+  [class~="border-[#cbc6fb]"]
+) {
+  border-color: color-mix(in srgb, var(--primary) 58%, transparent) !important;
+}
+
+html[data-theme="dark"] .paper-shell :is(
+  [class~="border-[#b9d6c1]"],
+  [class~="border-[#c8ddce]"]
+) {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="border-[#f1d4a8]"] {
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent) !important;
+}
+
+html[data-theme="dark"] .paper-shell [class~="hover:bg-[#faf9ff]"]:hover,
+html[data-theme="dark"] .paper-shell [class~="hover:bg-white"]:hover {
+  background-color: var(--surface-muted) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom Scrollbar */
@@ -80,7 +489,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(11, 13, 20, 0.8);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
 }
 
 ::-webkit-scrollbar-thumb {

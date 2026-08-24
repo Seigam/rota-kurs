@@ -28,6 +28,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Öğrenci profili bulunamadı.' }, { status: 404 });
     }
 
+    if (user.role === Role.TEACHER) {
+      const teacher = await prisma.teacherProfile.findUnique({
+        where: { userId: user.id },
+        select: { classGroups: { select: { id: true } } },
+      });
+      const allowedGroups = new Set(teacher?.classGroups.map((group) => group.id) ?? []);
+      if (!profile.classGroupId || !allowedGroups.has(profile.classGroupId)) {
+        return NextResponse.json({ error: 'Bu öğrenci için not ekleme yetkiniz yok.' }, { status: 403 });
+      }
+    }
+
     const newNote = await prisma.counselorNote.create({
       data: {
         studentId: profile.id,

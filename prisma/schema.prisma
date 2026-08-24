@@ -98,6 +98,34 @@ enum CatalogVerificationStatus {
   REJECTED
 }
 
+enum DevelopmentArea {
+  LEARNING_FUTURE
+  SELF_DEVELOPMENT_WELLBEING
+  RELATIONSHIPS_PARTICIPATION
+}
+
+enum DevelopmentAssessmentKind {
+  BASELINE
+  MONTHLY
+}
+
+enum DevelopmentAssessmentStatus {
+  DRAFT
+  COMPLETED
+}
+
+enum DevelopmentConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CatalogFitBand {
+  STRONG
+  SUITABLE
+  EXPLORE
+}
+
 model User {
   id           String          @id @default(uuid())
   email        String          @unique
@@ -110,6 +138,7 @@ model User {
   profile        Profile?
   teacherProfile TeacherProfile?
   teacherNotes   CounselorNote[] @relation("TeacherWrittenNotes")
+  assessmentComments AssessmentComment[] @relation("AssessmentCommentAuthor")
 }
 
 model School {
@@ -170,6 +199,8 @@ model Profile {
   aiFeedback       AiFeedback[]
   careerInterestResult CareerInterestResult?
   aiRateLimitBuckets AiRateLimitBucket[]
+  developmentAssessments DevelopmentAssessment[]
+  catalogFavorites CatalogFavorite[]
 
   @@map("StudentProfile")
 }
@@ -572,6 +603,113 @@ model CatalogItem {
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
+  developmentRecommendations DevelopmentCatalogRecommendation[]
+  favorites                  CatalogFavorite[]
+
   @@index([verificationStatus, isActive])
   @@index([minGrade, maxGrade])
+}
+
+model DevelopmentAssessment {
+  id                   String                      @id @default(uuid())
+  profileId            String
+  kind                 DevelopmentAssessmentKind
+  status               DevelopmentAssessmentStatus @default(DRAFT)
+  periodKey            String
+  questionnaireVersion String                      @default("development-pulse-v1")
+  scoringVersion       String                      @default("development-priority-v1")
+  startedAt            DateTime                    @default(now())
+  completedAt          DateTime?
+  updatedAt            DateTime                    @updatedAt
+
+  profile         Profile                              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  responses       DevelopmentAssessmentResponse[]
+  areaScores      DevelopmentAreaScore[]
+  recommendations DevelopmentCatalogRecommendation[]
+  comments        AssessmentComment[]
+
+  @@unique([profileId, kind, periodKey])
+  @@index([profileId, status, completedAt])
+}
+
+model DevelopmentAssessmentResponse {
+  id              String          @id @default(uuid())
+  assessmentId    String
+  questionKey     String
+  area            DevelopmentArea
+  domain          LifeDomain
+  statusScore     Int?
+  importanceScore Int?
+  uncertain       Boolean         @default(false)
+  isFollowUp      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  assessment DevelopmentAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionKey])
+  @@index([assessmentId, area])
+}
+
+model DevelopmentAreaScore {
+  id                String                @id @default(uuid())
+  assessmentId      String
+  area              DevelopmentArea
+  statusAverage     Float
+  importanceAverage Float
+  priorityScore     Int
+  confidence        DevelopmentConfidence
+  rank              Int
+  dominantDomain    LifeDomain
+  createdAt         DateTime              @default(now())
+
+  assessment DevelopmentAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, area])
+  @@index([assessmentId, rank])
+}
+
+model DevelopmentCatalogRecommendation {
+  id              String                @id @default(uuid())
+  assessmentId    String
+  catalogItemId   String
+  internalScore   Int
+  fitBand         CatalogFitBand
+  confidence      DevelopmentConfidence
+  reasonBreakdown String                @default("[]")
+  rank            Int
+  createdAt       DateTime              @default(now())
+
+  assessment DevelopmentAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem           @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, catalogItemId])
+  @@index([assessmentId, rank])
+}
+
+model AssessmentComment {
+  id           String   @id @default(uuid())
+  assessmentId String
+  authorId     String
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assessment DevelopmentAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  author     User                  @relation("AssessmentCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId, createdAt])
+}
+
+model CatalogFavorite {
+  id            String   @id @default(uuid())
+  profileId     String
+  catalogItemId String
+  savedAt       DateTime @default(now())
+
+  profile     Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  catalogItem CatalogItem @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, catalogItemId])
+  @@index([profileId, savedAt])
 }

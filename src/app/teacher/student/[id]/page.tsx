@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { StudentCounselorNotes } from '@/components/teacher/student-counselor-notes';
+import { StudentDevelopmentSummary } from '@/components/teacher/student-development-summary';
 import Link from 'next/link';
 import { 
   Users, ArrowLeft, Sparkles, Target, Star, ShieldCheck, 
@@ -13,13 +14,23 @@ interface PageProps {
 }
 
 export default async function TeacherStudentDetailPage({ params }: PageProps) {
-  await requireRole([Role.TEACHER, Role.ADMIN]);
+  const currentUser = await requireRole([Role.TEACHER, Role.ADMIN]);
   const { id } = await params;
+
+  const allowedClassGroupIds = currentUser.role === Role.TEACHER
+    ? (await prisma.teacherProfile.findUnique({
+        where: { userId: currentUser.id },
+        select: { classGroups: { select: { id: true } } },
+      }))?.classGroups.map((group) => group.id) ?? []
+    : null;
 
   // id hhem profile.id hem user.id olabilir
   const profile = await prisma.profile.findFirst({
     where: {
-      OR: [{ id }, { userId: id }],
+      AND: [
+        { OR: [{ id }, { userId: id }] },
+        ...(allowedClassGroupIds ? [{ classGroupId: { in: allowedClassGroupIds } }] : []),
+      ],
     },
     include: {
       user: true,
@@ -38,6 +49,15 @@ export default async function TeacherStudentDetailPage({ params }: PageProps) {
       counselorNotes: {
         include: { counselor: { select: { name: true, email: true } } },
         orderBy: { createdAt: 'desc' },
+      },
+      developmentAssessments: {
+        where: { status: 'COMPLETED' },
+        orderBy: { completedAt: 'desc' },
+        take: 1,
+        include: {
+          areaScores: { orderBy: { rank: 'asc' } },
+          comments: { orderBy: { createdAt: 'desc' }, include: { author: { select: { name: true } } } },
+        },
       },
     },
   });
@@ -172,6 +192,9 @@ export default async function TeacherStudentDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
+
+        {/* Counselor Notes Section */}
+        <StudentDevelopmentSummary assessment={profile.developmentAssessments[0] ?? null} />
 
         {/* Counselor Notes Section */}
         <StudentCounselorNotes

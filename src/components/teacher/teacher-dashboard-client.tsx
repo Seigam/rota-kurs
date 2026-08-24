@@ -210,8 +210,54 @@ export function TeacherDashboardClient() {
         </div>
       </div>
 
+      {/* Mobilde her öğrencinin temel bilgisi ve ana eylemi tek kartta görünür. */}
+      <div className="grid gap-3 md:hidden" aria-label="Öğrenci listesi">
+        {filteredStudents.length === 0 ? (
+          <div className="glass-panel rounded-2xl p-8 text-center text-sm text-gray-400">Kriterlerinize uygun öğrenci bulunamadı.</div>
+        ) : (
+          filteredStudents.map((student) => {
+            const profile = student.profile;
+            const personality = profile?.personalityResult;
+            const latestNote = profile?.counselorNotes?.[0];
+
+            return (
+              <article key={student.id} className="glass-panel rounded-2xl border border-white/10 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-sm font-black text-white">
+                    {student.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-extrabold text-white">{student.name || 'İsimsiz öğrenci'}</h3>
+                    <p className="truncate text-xs text-gray-400">{student.email}</p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-bold text-gray-200">{profile?.grade ? `${profile.grade}. sınıf` : 'Lise'}</span>
+                </div>
+
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <dt className="font-bold text-gray-400">Hedef</dt>
+                    <dd className="mt-1 font-extrabold text-indigo-300">{profile?.targetCareer || 'Belirtilmedi'}</dd>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <dt className="font-bold text-gray-400">Profil ve ilerleme</dt>
+                    <dd className="mt-1 font-extrabold text-purple-300">{personality?.mbtiType || 'Test bekliyor'} · {profile?.experiencePoints || 0} XP</dd>
+                  </div>
+                </dl>
+
+                {latestNote && <p className="mt-3 line-clamp-2 rounded-xl bg-black/20 p-3 text-xs italic leading-5 text-gray-300">&ldquo;{latestNote.content}&rdquo;</p>}
+
+                <Link href={`/teacher/student/${profile?.id || student.id}`} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-xs font-bold text-white">
+                  İncele ve not ekle
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </Link>
+              </article>
+            );
+          })
+        )}
+      </div>
+
       {/* Students Table */}
-      <div className="glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+      <div className="glass-panel hidden rounded-3xl border border-white/10 overflow-hidden shadow-2xl md:block">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[800px]">
             <thead>

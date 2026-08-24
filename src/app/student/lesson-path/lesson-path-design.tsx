@@ -96,7 +96,7 @@ export function LessonPathDesign({
   }, [activeCourse]);
 
   return (
-    <main className={cx('page-shell')}>
+    <div className={cx('page-shell')}>
       <section className={cx('route-view')} aria-labelledby="lesson-route-title">
         <div className={cx('route-intro-card')}>
           <div className={cx('route-intro-copy')}>
@@ -261,6 +261,6 @@ export function LessonPathDesign({
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

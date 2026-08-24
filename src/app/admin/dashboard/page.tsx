@@ -1,10 +1,16 @@
 import { requireRole } from '@/lib/auth-utils';
 import { AdminDashboardClient } from '@/components/admin/admin-dashboard-client';
 import { Role } from '@prisma/client';
-import { Shield, Sparkles } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
-export default async function AdminDashboardPage() {
+const ADMIN_TABS = ['analytics', 'programs', 'users', 'approvals'] as const;
+
+export default async function AdminDashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireRole([Role.ADMIN]);
+  const { tab } = await searchParams;
+  const normalizedTab = ADMIN_TABS.includes(tab as (typeof ADMIN_TABS)[number])
+    ? tab!.toUpperCase() as 'ANALYTICS' | 'PROGRAMS' | 'USERS' | 'APPROVALS'
+    : 'ANALYTICS';
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-10 relative overflow-hidden">
@@ -30,7 +36,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        <AdminDashboardClient />
+        <AdminDashboardClient initialTab={normalizedTab} />
       </div>
     </div>
   );

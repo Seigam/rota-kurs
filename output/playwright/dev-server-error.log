@@ -1,0 +1,261 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Ali\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Ali\Desktop\OgrenciRehberlik\package-lock.json
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].aiRateLimitBucket.upsert()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\[root-of-the-server]__02ld3t-._.js:687:187
+
+  684 const tenMinute = bucketKey(profileId, 'ten-minute', now);
+  685 const daily = bucketKey(profileId, 'daily', now);
+  686 const [shortBucket, dayBucket] = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].$transaction([
+→ 687     {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].aiRateLimitBucket.upsert(
+Transaction API error: Unable to start a transaction in the given time.
+    at <unknown> (src\lib\ai\rate-limit.ts:18:30)
+  16 |   const daily = bucketKey(profileId, 'daily', now);
+  17 |   const [shortBucket, dayBucket] = await prisma.$transaction([
+> 18 |     prisma.aiRateLimitBucket.upsert({
+     |                              ^
+  19 |       where: { key: tenMinute.key },
+  20 |       create: { key: tenMinute.key, profileId, bucketType: 'TEN_MINUTE', count: 1, expires...
+  21 |       update: { count: { increment: 1 } }, {
+  code: 'P2028',
+  meta: { modelName: 'AiRateLimitBucket' },
+  clientVersion: '7.8.0'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].aiRateLimitBucket.upsert()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\[root-of-the-server]__02ld3t-._.js:687:187
+
+  684 const tenMinute = bucketKey(profileId, 'ten-minute', now);
+  685 const daily = bucketKey(profileId, 'daily', now);
+  686 const [shortBucket, dayBucket] = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].$transaction([
+→ 687     {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].aiRateLimitBucket.upsert(
+Transaction API error: Unable to start a transaction in the given time.
+    at <unknown> (src\lib\ai\rate-limit.ts:18:30)
+  16 |   const daily = bucketKey(profileId, 'daily', now);
+  17 |   const [shortBucket, dayBucket] = await prisma.$transaction([
+> 18 |     prisma.aiRateLimitBucket.upsert({
+     |                              ^
+  19 |       where: { key: tenMinute.key },
+  20 |       create: { key: tenMinute.key, profileId, bucketType: 'TEN_MINUTE', count: 1, expires...
+  21 |       update: { count: { increment: 1 } }, {
+  code: 'P2028',
+  meta: { modelName: 'AiRateLimitBucket' },
+  clientVersion: '7.8.0'
+}
+[browser] Kurs önerileri alınamadı: SyntaxError: Unexpected end of JSON input
+SyntaxError: Unexpected end of JSON input (src/components/student/goals-tracker-client.tsx:944:15)
+[browser] Kurs önerileri alınamadı: SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input
+    at fetchRecommendations (src/components/student/goals-tracker-client.tsx:938:30)
+  936 |         body: JSON.stringify({ domain: activeDomain }),
+  937 |       });
+> 938 |       const data = await res.json();
+      |                              ^
+  939 |       if (res.ok && data.data?.recommendations) {
+  940 |         setRecs(data.data.recommendations);
+  941 |         setResultMeta({ requestId: data.requestId, sourceMode: data.sourceMode, warnings:... (src/components/student/goals-tracker-client.tsx:944:15)
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0m18b8w._.js:1778:193
+
+  1775     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  1776     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  1777 ]);
+→ 1778 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\roadmap\page.tsx:29:40)
+    at async StudentRoadmapPage (src\app\student\roadmap\page.tsx:29:19)
+  27 | export default async function StudentRoadmapPage() {
+  28 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 29 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  30 |     where: { userId: user.id },
+  31 |     include: {
+  32 |       personalityResult: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '3890631334'
+}
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+⨯ Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>) {
+  digest: '1950308050'
+}
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>:1:18)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+⨯ Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>) {
+  digest: '1950308050'
+}
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>:1:18)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0n-ml7y._.js:587:193
+
+  584     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  585     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  586 ]);
+→ 587 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\dashboard\page.tsx:72:40)
+    at async StudentDashboardPage (src\app\student\dashboard\page.tsx:72:19)
+  70 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+  71 |
+> 72 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  73 |     where: { userId: user.id },
+  74 |     include: {
+  75 |       familyMembers: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '492546320'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0m18b8w._.js:1781:193
+
+  1778     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  1779     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  1780 ]);
+→ 1781 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\roadmap\page.tsx:29:40)
+    at async StudentRoadmapPage (src\app\student\roadmap\page.tsx:29:19)
+  27 | export default async function StudentRoadmapPage() {
+  28 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 29 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  30 |     where: { userId: user.id },
+  31 |     include: {
+  32 |       personalityResult: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '4007543680'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0m18b8w._.js:1781:193
+
+  1778     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  1779     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  1780 ]);
+→ 1781 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\roadmap\page.tsx:29:40)
+    at async StudentRoadmapPage (src\app\student\roadmap\page.tsx:29:19)
+  27 | export default async function StudentRoadmapPage() {
+  28 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 29 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  30 |     where: { userId: user.id },
+  31 |     include: {
+  32 |       personalityResult: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '4007543680'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0ebzgog._.js:367:193
+
+  364     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  365     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  366 ]);
+→ 367 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\lesson-path\page.tsx:53:40)
+    at async StudentLessonPathPage (src\app\student\lesson-path\page.tsx:53:19)
+  51 | export default async function StudentLessonPathPage() {
+  52 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 53 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  54 |     where: { userId: user.id },
+  55 |     select: {
+  56 |       id: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '2267934343'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `{imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0m18b8w._.js:1781:193
+
+  1778     {imported module [externals]/@prisma/client}["Role"].STUDENT,
+  1779     {imported module [externals]/@prisma/client}["Role"].ADMIN
+  1780 ]);
+→ 1781 const profile = await {imported module ./Desktop/OgrenciRehberlik/src/lib/prisma.ts}["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\roadmap\page.tsx:29:40)
+    at async StudentRoadmapPage (src\app\student\roadmap\page.tsx:29:19)
+  27 | export default async function StudentRoadmapPage() {
+  28 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 29 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  30 |     where: { userId: user.id },
+  31 |     include: {
+  32 |       personalityResult: true, {
+  code: 'ETIMEDOUT',
+  meta: { modelName: 'Profile' },
+  clientVersion: '7.8.0',
+  digest: '4007543680'
+}
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught PrismaClientKnownRequestError: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$OgrenciRehberlik$2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].profile.findUnique()` invocation in
+C:\Users\Ali\Desktop\OgrenciRehberlik\.next\dev\server\chunks\ssr\[root-of-the-server]__0m18b8w._.js:1781:193
+
+  1778     __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$Desktop$2f$OgrenciRehberlik$2f$node_modules$2f40$prisma$2f$client$29$__["Role"].STUDENT,
+  1779     __TURBOPACK__imported__module__$5b$externals$5d2f40$prisma$2f$client__$5b$external$5d$__$2840$prisma$2f$client$2c$__cjs$2c$__$5b$project$5d2f$Desktop$2f$OgrenciRehberlik$2f$node_modules$2f40$prisma$2f$client$29$__["Role"].ADMIN
+  1780 ]);
+→ 1781 const profile = await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$OgrenciRehberlik$2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].profile.findUnique(
+
+    at <unknown> (src\app\student\roadmap\page.tsx:29:40)
+    at  StudentRoadmapPage (src\app\student\roadmap\page.tsx:29:19)
+  27 | export default async function StudentRoadmapPage() {
+  28 |   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+> 29 |   const profile = await prisma.profile.findUnique({
+     |                                        ^
+  30 |     where: { userId: user.id },
+  31 |     include: {
+  32 |       personalityResult: true,
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior

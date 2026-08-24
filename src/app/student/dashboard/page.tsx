@@ -1,12 +1,77 @@
 import { requireRole } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { 
-  Sparkles, GraduationCap, Compass, BookOpen, Award, ArrowRight, 
-  Users, CheckCircle2, AlertTriangle, Star, Shield, HeartHandshake, Target, Map 
+import {
+  ArrowRight,
+  Activity,
+  Award,
+  BookOpenCheck,
+  CheckCircle2,
+  ClipboardCheck,
+  Compass,
+  HeartHandshake,
+  Route,
+  Sparkles,
+  Star,
+  Target,
 } from 'lucide-react';
 import { Role } from '@prisma/client';
 import { WeeklyFocusWidget } from '@/components/student/weekly-focus-widget';
+import { GettingStartedGuide, type GettingStartedStep } from '@/components/student/getting-started-guide';
+
+const quickActions = [
+  {
+    href: '/student/roadmap',
+    title: 'Yol haritam',
+    description: 'Büyük resmi ve sıradaki adımı gör',
+    icon: Route,
+  },
+  {
+    href: '/student/goals',
+    title: 'Hedeflerim',
+    description: 'Haftalık planını güncelle',
+    icon: Target,
+  },
+  {
+    href: '/student/lesson-path',
+    title: 'Ders rotam',
+    description: 'Ders ve kaynak önerilerini aç',
+    icon: BookOpenCheck,
+  },
+];
+
+const tools = [
+  {
+    href: '/student/development',
+    title: 'Gelişim nabzım',
+    description: 'Üç ana alandaki durumunu değerlendir',
+    icon: Activity,
+  },
+  {
+    href: '/rpg/test',
+    title: 'Rehberlik envanteri',
+    description: 'İlgi ve öğrenme profilini keşfet',
+    icon: Compass,
+  },
+  {
+    href: '/student/programs',
+    title: 'Program önerileri',
+    description: 'Sana uygun programları karşılaştır',
+    icon: Award,
+  },
+  {
+    href: '/student/values',
+    title: 'Değerlerim',
+    description: 'Senin için önemli olanları sırala',
+    icon: Star,
+  },
+  {
+    href: '/student/counseling',
+    title: 'Rehberlik desteği',
+    description: 'Notlarını ve görüşme özetini gör',
+    icon: HeartHandshake,
+  },
+];
 
 export default async function StudentDashboardPage() {
   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
@@ -17,6 +82,15 @@ export default async function StudentDashboardPage() {
       familyMembers: true,
       personalityResult: true,
       testAnswers: true,
+      valueRankings: { take: 1 },
+      profileRankings: { take: 1 },
+      lifeDomainEntries: { take: 1 },
+      recommendations: { take: 1 },
+      developmentAssessments: {
+        where: { status: 'COMPLETED' },
+        orderBy: { completedAt: 'desc' },
+        take: 1,
+      },
     },
   });
 
@@ -25,373 +99,271 @@ export default async function StudentDashboardPage() {
   const nextLevelXp = level * 100;
   const xpPercentage = Math.min(100, Math.round((xp / nextLevelXp) * 100));
 
+  const hasValues = Boolean(profile?.valueRankings.length || profile?.profileRankings.length);
+  const hasDomainPlan = Boolean(profile?.lifeDomainEntries.length);
+  const hasDevelopmentAssessment = Boolean(profile?.developmentAssessments.length);
+
+  const gettingStartedSteps: GettingStartedStep[] = [
+    {
+      title: 'Seni tanıyalım',
+      description: 'Sınıf ve hedef bilgilerini ekle.',
+      href: '/student/onboarding',
+      completed: Boolean(profile?.completedOnboarding),
+      icon: ClipboardCheck,
+    },
+    {
+      title: 'Önceliklerini seç',
+      description: 'Senin için önemli değerleri sırala.',
+      href: '/student/values',
+      completed: hasValues,
+      icon: Star,
+    },
+    {
+      title: 'Gelişim nabzını çıkar',
+      description: 'Üç ana alandaki durumunu ve önceliğini değerlendir.',
+      href: '/student/development',
+      completed: hasDevelopmentAssessment,
+      icon: Activity,
+    },
+    {
+      title: 'İlk hedefini kur',
+      description: 'Yaşam alanlarında bir yön belirle.',
+      href: '/student/domains',
+      completed: hasDomainPlan,
+      icon: Target,
+    },
+    {
+      title: 'Profilini keşfet',
+      description: 'Kısa rehberlik envanterini tamamla.',
+      href: '/rpg/test',
+      completed: Boolean(profile?.personalityResult),
+      icon: Compass,
+    },
+    {
+      title: 'Önerilerini gör',
+      description: 'Sana uygun programları karşılaştır.',
+      href: '/student/programs',
+      completed: Boolean(profile?.recommendations.length),
+      icon: Award,
+    },
+  ];
+
+  const nextAction = !profile?.completedOnboarding
+    ? {
+        eyebrow: 'Önce bunu tamamla',
+        title: 'Kişisel profilini oluştur',
+        description: 'Sınıfına ve hedeflerine uygun öneriler alabilmemiz için temel bilgilerini tamamla.',
+        duration: 'Yaklaşık 4 dakika',
+        href: '/student/onboarding',
+        cta: 'Profili tamamla',
+        icon: ClipboardCheck,
+      }
+    : !hasValues
+      ? {
+          eyebrow: 'Sıradaki kısa adım',
+          title: 'Sana yön veren değerleri seç',
+          description: 'Karar verirken senin için vazgeçilmez olan değerleri sıralayarak önerilerini kişiselleştir.',
+          duration: 'Yaklaşık 3 dakika',
+          href: '/student/values',
+          cta: 'Değerlerimi seç',
+          icon: Star,
+        }
+    : !hasDevelopmentAssessment
+      ? {
+          eyebrow: 'Sıradaki kısa adım',
+          title: 'Üç alandaki gelişim nabzını çıkar',
+          description: 'Öğrenme ve Gelecek, Kendini Geliştirme ve İyi Yaşam, İlişkiler ve Katılım alanlarında bu ayki önceliğini keşfet.',
+          duration: 'Yaklaşık 5 dakika',
+          href: '/student/development',
+          cta: 'Gelişim nabzımı başlat',
+          icon: Activity,
+        }
+    : !hasDomainPlan
+      ? {
+          eyebrow: 'Sıradaki kısa adım',
+          title: 'İlk hedefini görünür hale getir',
+          description: 'Akademik, kariyer veya kişisel gelişim alanlarından birinde isteğini somut bir hedefe dönüştür.',
+          duration: 'Yaklaşık 5 dakika',
+          href: '/student/domains',
+          cta: 'Hedefimi oluştur',
+          icon: Target,
+        }
+    : !profile.personalityResult
+      ? {
+          eyebrow: 'Sıradaki keşif',
+          title: 'İlgi ve öğrenme profilini keşfet',
+          description: 'Oyunlaştırılmış envanteri tamamla; güçlü yönlerini ve sana uygun çalışma yaklaşımını gör.',
+          duration: 'Yaklaşık 8 dakika',
+          href: '/rpg/test',
+          cta: 'Envanteri başlat',
+          icon: Compass,
+        }
+    : !profile.recommendations.length
+      ? {
+          eyebrow: 'Rotanı tamamla',
+          title: 'Sana uygun programları karşılaştır',
+          description: 'Profilin ve hedeflerin hazır. Şimdi eşleşen programları gör ve ilk favorini kaydet.',
+          duration: 'Yaklaşık 4 dakika',
+          href: '/student/programs',
+          cta: 'Önerilerimi gör',
+          icon: Award,
+        }
+      : {
+          eyebrow: 'Bugünkü önerin',
+          title: 'Yol haritandaki sıradaki adıma geç',
+          description: 'Hedeflerin, ders planın ve gelişim programların tek bir sırada hazır.',
+          duration: 'Kaldığın yerden devam et',
+          href: '/student/roadmap',
+          cta: 'Yol haritamı aç',
+          icon: Route,
+        };
+
+  const NextActionIcon = nextAction.icon;
+
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-10 relative overflow-hidden">
-      {/* Ambient Lights */}
-      <div className="absolute top-10 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-10 right-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
-        {/* Top Profile Banner */}
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-emerald-500 flex items-center justify-center shadow-xl shadow-indigo-500/30 font-extrabold text-2xl text-white">
-              {user.name?.charAt(0).toUpperCase()}
+    <div className="paper-shell flex-1">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <header className="flex flex-col gap-6 border-b border-[#ded9cf] pb-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-[#eeecff] px-3 py-1 text-xs font-extrabold text-[#4338ca]">
+                {profile?.grade ? `${profile.grade}. sınıf` : 'Lise öğrencisi'}
+              </span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold ${profile?.completedOnboarding ? 'bg-[#dce9df] text-[#24633b]' : 'bg-[#fff0d9] text-[#8a4b06]'}`}>
+                {profile?.completedOnboarding && <CheckCircle2 className="size-3.5" aria-hidden="true" />}
+                {profile?.completedOnboarding ? 'Profil hazır' : 'Profil tamamlanmadı'}
+              </span>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  {profile?.grade ? `${profile.grade}. Sınıf Öğrencisi` : 'Lise Öğrencisi'}
-                </span>
-                {profile?.completedOnboarding ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Profil Tamamlandı
+            <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#172033] sm:text-5xl">
+              Merhaba, {user.name?.split(' ')[0] || 'öğrenci'}.
+            </h1>
+            <p className="mt-2 text-lg text-[#626a79]">Bugün yalnızca sıradaki adıma odaklanalım.</p>
+          </div>
+
+          <div className="w-full max-w-sm rounded-2xl border border-[#ded9cf] bg-white p-4" aria-label={`Seviye ${level}, ${xp} deneyim puanı`}>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-extrabold text-[#303849]">Seviye {level}</span>
+              <span className="font-bold text-[#626a79]">{xp} / {nextLevelXp} XP</span>
+            </div>
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#ebe7df]" role="progressbar" aria-valuemin={0} aria-valuemax={nextLevelXp} aria-valuenow={Math.min(xp, nextLevelXp)} aria-label="Seviye ilerlemesi">
+              <div className="h-full rounded-full bg-[#4f46e5]" style={{ width: `${xpPercentage}%` }} />
+            </div>
+          </div>
+        </header>
+
+        <GettingStartedGuide steps={gettingStartedSteps} />
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
+          <section aria-labelledby="next-action-title" className="relative overflow-hidden rounded-[32px] bg-[#4f46e5] p-7 text-white shadow-[0_20px_45px_rgba(79,70,229,0.22)] sm:p-9">
+            <div className="absolute -right-16 -top-16 size-52 rounded-full border-[32px] border-white/10" aria-hidden="true" />
+            <div className="relative max-w-2xl">
+              <span className="grid size-12 place-items-center rounded-2xl bg-white/15">
+                <NextActionIcon className="size-6" aria-hidden="true" />
+              </span>
+              <p className="mt-7 text-xs font-extrabold uppercase tracking-[0.16em] text-indigo-100">{nextAction.eyebrow}</p>
+              <h2 id="next-action-title" className="mt-2 text-3xl font-black tracking-[-0.03em] sm:text-4xl">{nextAction.title}</h2>
+              <p className="mt-4 max-w-xl text-base leading-7 text-indigo-100">{nextAction.description}</p>
+              <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <Link href={nextAction.href} className="inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl bg-white px-6 font-extrabold text-[#3730a3] shadow-[0_6px_0_#c9c5f8] hover:-translate-y-0.5">
+                  {nextAction.cta}
+                  <ArrowRight className="size-5" aria-hidden="true" />
+                </Link>
+                <span className="text-sm font-bold text-indigo-100">{nextAction.duration}</span>
+              </div>
+            </div>
+          </section>
+
+          <aside className="paper-card rounded-[32px] p-6" aria-labelledby="profile-summary-title">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#777e8b]">Kısa özet</p>
+                <h2 id="profile-summary-title" className="mt-1 text-xl font-black text-[#172033]">Profilin</h2>
+              </div>
+              <Sparkles className="size-6 text-[#e96852]" aria-hidden="true" />
+            </div>
+            <dl className="mt-6 grid gap-4">
+              <div className="rounded-2xl bg-[#f6f2eb] p-4">
+                <dt className="text-xs font-bold text-[#777e8b]">Hedef meslek</dt>
+                <dd className="mt-1 font-extrabold text-[#172033]">{profile?.targetCareer || 'Henüz belirlenmedi'}</dd>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-[#eeecff] p-4">
+                  <dt className="text-xs font-bold text-[#625ab3]">Kişilik profili</dt>
+                  <dd className="mt-1 text-lg font-black text-[#3730a3]">{profile?.personalityResult?.mbtiType || '—'}</dd>
+                </div>
+                <div className="rounded-2xl bg-[#eaf3ec] p-4">
+                  <dt className="text-xs font-bold text-[#4c765b]">Destek ağı</dt>
+                  <dd className="mt-1 text-lg font-black text-[#24633b]">{profile?.familyMembers?.length || 0} kişi</dd>
+                </div>
+              </div>
+            </dl>
+            <Link href="/student/profile" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl font-extrabold text-[#4338ca] hover:underline">
+              Profil ayrıntılarını gör
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </aside>
+        </div>
+
+        <section className="mt-12" aria-labelledby="quick-actions-title">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#4f46e5]">Hızlı erişim</p>
+              <h2 id="quick-actions-title" className="mt-2 text-2xl font-black tracking-tight text-[#172033]">En sık kullandıkların</h2>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.href} href={action.href} className="paper-card group flex min-h-32 items-start gap-4 rounded-3xl p-5 transition-transform hover:-translate-y-1">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#eeecff] text-[#4f46e5]">
+                    <Icon className="size-5" aria-hidden="true" />
                   </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse">
-                    <AlertTriangle className="w-3 h-3" /> Eksik Profil
+                  <span>
+                    <span className="block font-black text-[#172033]">{action.title}</span>
+                    <span className="mt-1 block text-sm leading-6 text-[#686f7d]">{action.description}</span>
                   </span>
-                )}
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-                Merhaba, <span className="text-gradient">{user.name}</span>!
-              </h1>
-              <p className="text-sm text-gray-400">
-                Hedef Meslek: <span className="text-indigo-300 font-semibold">{profile?.targetCareer || 'Belirtilmedi'}</span>
-              </p>
-            </div>
+                </Link>
+              );
+            })}
           </div>
+        </section>
 
-          {/* Level & XP Widget */}
-          <div className="w-full md:w-auto min-w-[240px] bg-black/40 p-5 rounded-2xl border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Seviye & XP</span>
-              <span className="text-sm font-extrabold text-emerald-400">Seviye {level}</span>
-            </div>
-            <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-500"
-                style={{ width: `${xpPercentage}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[11px] text-gray-400 font-medium">
-              <span>{xp} XP</span>
-              <span>Sonraki Seviye: {nextLevelXp} XP</span>
-            </div>
-          </div>
-        </div>
-
-        {/* AKILLI YÖNLENDİRME BANNER'I (Next Best Action - Tamamlanmamış Öncelikli Adım) */}
-        {!profile?.completedOnboarding ? (
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-300 border border-amber-500/30 flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 animate-bounce" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Öncelikli Adım: Kişisel ve Akademik Profilinizi Tamamlayın</h3>
-                <p className="text-xs text-gray-300">
-                  Sınıfınıza ve hedefinize özel rehberlik önerileri sunabilmemiz için profil bilginizi doldurun.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/student/profile"
-              className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-sm whitespace-nowrap shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
-            >
-              <span>Profili Tamamla</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        ) : !profile?.personalityResult ? (
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-indigo-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-300 border border-indigo-500/30 flex-shrink-0">
-                <Compass className="w-6 h-6 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Öncelikli Adım: Öğrenme Tarzınızı ve Akademik Eğiliminizi Keşfedin</h3>
-                <p className="text-xs text-gray-300">
-                  Rehberlik envanterini çözerek güçlü yönlerinizi ve çalışma stratejisi önerilerinizi anında öğrenin.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/rpg/test"
-              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm whitespace-nowrap shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
-            >
-              <span>Envanteri Çöz</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        ) : null}
-
-        {/* HIZLI ERİŞİM VE ARAÇLAR WİDGET'I */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Link
-            href="/student/roadmap"
-            className="glass-panel p-4 rounded-2xl border border-emerald-400/20 hover:border-emerald-400/50 flex items-center gap-3 transition-all group bg-emerald-500/[0.04]"
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 group-hover:scale-110 transition-transform">
-              <Map className="w-5 h-5" />
-            </div>
+        <section className="mt-12" aria-labelledby="weekly-focus-title">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-2xl bg-[#fff0ed] text-[#c44d3b]">
+              <ClipboardCheck className="size-5" aria-hidden="true" />
+            </span>
             <div>
-              <h4 className="text-xs font-bold text-white">Yol Haritam</h4>
-              <p className="text-[10px] text-gray-400">Büyük resmi ve sıradaki adımı gör</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/student/goals"
-            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-indigo-400/40 flex items-center gap-3 transition-all group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 shrink-0 group-hover:scale-110 transition-transform">
-              <Target className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Takvim & Görevler</h4>
-              <p className="text-[10px] text-gray-400">Haftalık planını yönet</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/student/profile"
-            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-purple-400/40 flex items-center gap-3 transition-all group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Profil & İstatistikler</h4>
-              <p className="text-[10px] text-gray-400">Gelişimini ve künyeni gör</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/student/domains"
-            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-emerald-400/40 flex items-center gap-3 transition-all group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 group-hover:scale-110 transition-transform">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Hedef Sihirbazı</h4>
-              <p className="text-[10px] text-gray-400">AI ile yeni hedefler seç</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/rpg/test"
-            className="glass-panel p-4 rounded-2xl border border-white/10 hover:border-amber-400/40 flex items-center gap-3 transition-all group"
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0 group-hover:scale-110 transition-transform">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Rehberlik Envanteri</h4>
-              <p className="text-[10px] text-gray-400">Öğrenme profili testi</p>
-            </div>
-          </Link>
-        </div>
-
-        {/* SEÇENEK C: Haftalık Odak ve Ajanda Widget'ı */}
-        <WeeklyFocusWidget />
-
-        {/* Main Action Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Keşif Adası */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
-            <div className="space-y-4 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 flex items-center justify-center border border-indigo-500/40 text-indigo-300 shadow-lg">
-                <Compass className="w-8 h-8 animate-spin-slow" />
-              </div>
-              <div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider mb-2">
-                  15 Sahneli Oyunlaştırılmış Test
-                </span>
-                <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
-                  Gizemli Akademi / Keşif Adası
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  İnteraktif senaryolarla seçimlerinizi yapın. MBTI kişilik profilinizi ve Enneagram motivasyonlarınızı keşfedin.
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/rpg/test"
-              className="w-full glow-button py-3 px-4 rounded-xl text-white font-bold text-sm text-center flex items-center justify-center gap-2 group relative z-10"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span>{profile?.personalityResult ? 'Sonuçları / Macerayı İncele' : 'Keşif Adasına Başla'}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          {/* Card 2: Yaşam Alanları Çalışma Matrisi */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all" />
-            <div className="space-y-4 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-amber-600/30 flex items-center justify-center border border-amber-500/40 text-amber-300 shadow-lg">
-                <Target className="w-8 h-8" />
-              </div>
-              <div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider mb-2">
-                  Yapay Zeka Destekli SMART Hedefler
-                </span>
-                <h3 className="text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
-                  Planlar & Hedefler Sihirbazı
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  İsteklerinizi yazın, yapay zekanın önerdiği hedefleri seçip adım adım eylem planlarınızı oluşturun.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 relative z-10">
-              <Link
-                href="/student/domains"
-                className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs text-center flex items-center justify-center gap-2 transition-all"
-              >
-                <span>AI ile Hedef Oluştur (+100 XP)</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/student/goals"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 font-bold text-xs text-center flex items-center justify-center gap-2 transition-all"
-              >
-                <span>Canlı Hedef Takibi (+XP Kazan)</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#e05d48]">Bu hafta</p>
+              <h2 id="weekly-focus-title" className="text-2xl font-black tracking-tight text-[#172033]">Haftalık odağın</h2>
             </div>
           </div>
+          <WeeklyFocusWidget />
+        </section>
 
-          {/* Card 3: Kariyer & Sertifika Programları */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
-            <div className="space-y-4 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-purple-600/30 flex items-center justify-center border border-purple-500/40 text-purple-300 shadow-lg">
-                <Award className="w-8 h-8" />
-              </div>
-              <div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider mb-2">
-                  25+ Önerilen Program
-                </span>
-                <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
-                  Kariyer & Sertifika Rotaları
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  Kişilik analizinize uygun TÜBİTAK, Coursera, MEB ve üniversite sertifika programları listesi.
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/student/programs"
-              className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm text-center flex items-center justify-center gap-2 transition-all relative z-10"
-            >
-              <span>Programları İncele</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+        <section className="mt-12 border-t border-[#ded9cf] pt-10" aria-labelledby="all-tools-title">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.15em] text-[#777e8b]">İhtiyacın olduğunda</p>
+            <h2 id="all-tools-title" className="mt-2 text-2xl font-black tracking-tight text-[#172033]">Diğer araçlar</h2>
           </div>
-
-          {/* Card 4: Aile İletişimi & Rehber Öğretmen */}
-          <div className="glass-card p-6 rounded-3xl border border-white/10 flex flex-col justify-between space-y-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all" />
-            <div className="space-y-4 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-600/30 flex items-center justify-center border border-emerald-500/40 text-emerald-300 shadow-lg">
-                <HeartHandshake className="w-8 h-8" />
-              </div>
-              <div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider mb-2">
-                  Çatışma Çözümü & İletişim
-                </span>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">
-                  Danışmanlık & Aile Uyumu
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  Ailenizin beklentileri ile kendi hayalleriniz arasındaki dengeyi kurun. Rehber öğretmen notlarını görüntüleyin.
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/student/counseling"
-              className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm text-center flex items-center justify-center gap-2 transition-all relative z-10"
-            >
-              <span>Rehberlik Raporumu Gör</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {tools.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <Link key={tool.href} href={tool.href} className="group rounded-2xl border border-[#ded9cf] bg-white/75 p-5 hover:border-[#aaa2e9] hover:bg-white">
+                  <div className="flex items-center justify-between">
+                    <Icon className="size-5 text-[#4f46e5]" aria-hidden="true" />
+                    <ArrowRight className="size-4 text-[#9ca3af] transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-5 font-black text-[#172033]">{tool.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[#686f7d]">{tool.description}</p>
+                </Link>
+              );
+            })}
           </div>
-        </div>
-
-        {/* Secondary Modules Banner */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30 text-amber-300 flex-shrink-0">
-                <Star className="w-7 h-7" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Sürükle-Bırak Sıralama</span>
-                <h3 className="text-lg font-bold text-white">Temel Kariyer Değerleri Haritası</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Sizin için en önemli 12 iş ve yaşam değerini önceliklendirin.</p>
-              </div>
-            </div>
-            <Link
-              href="/student/values"
-              className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs whitespace-nowrap shadow-lg flex items-center gap-1.5 transition-transform hover:scale-105"
-            >
-              <span>Sırala (+30 XP)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 text-indigo-300 flex-shrink-0">
-                <Shield className="w-7 h-7" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">Yapay Zeka Destekli</span>
-                <h3 className="text-lg font-bold text-white">Kişiselleştirilmiş Öneri Rotaları</h3>
-                <p className="text-xs text-gray-400 mt-0.5">MBTI, Enneagram ve Yaşam Alanlarınıza göre filtrelenmiş eşleşmeler.</p>
-              </div>
-            </div>
-            <Link
-              href="/student/programs"
-              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs whitespace-nowrap shadow-lg flex items-center gap-1.5 transition-transform hover:scale-105"
-            >
-              <span>Akıllı Eşleşmeler</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-xs text-gray-400 font-medium">Toplam XP</span>
-            <div className="text-2xl font-extrabold text-white">{xp} XP</div>
-          </div>
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-xs text-gray-400 font-medium">Tamamlanan Senaryo Sahnesi</span>
-            <div className="text-2xl font-extrabold text-indigo-400">{profile?.testAnswers?.length || 0} / 15</div>
-          </div>
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-xs text-gray-400 font-medium">Kişilik Profili</span>
-            <div className="text-2xl font-extrabold text-purple-400">
-              {profile?.personalityResult?.mbtiType || 'Eksik'}
-            </div>
-          </div>
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-xs text-gray-400 font-medium">Sosyal Destek Ağınız</span>
-            <div className="text-2xl font-extrabold text-emerald-400">{profile?.familyMembers?.length || 0} Kişi</div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
-

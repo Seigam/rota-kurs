@@ -189,7 +189,7 @@ export default function MicroCredentialsPage() {
       </section>
 
       {/* Main Content Body */}
-      <main className="relative z-20 flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <div className="relative z-20 flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* TAB 1: ZORUNLU MİKRO DERSLER */}
         {activeTab === 'compulsory' && (
           <div className="space-y-10 animate-fadeIn">
@@ -443,7 +443,7 @@ export default function MicroCredentialsPage() {
             )}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Footer Banner */}
       <footer className="relative z-20 border-t border-white/10 bg-black/60 py-12 px-4 text-center space-y-4">

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, Users, Sparkles, Plus, Trash2, CheckCircle2, ArrowRight, 
-  ArrowLeft, School, Heart, Award, HelpCircle, BookOpen, Briefcase, Star 
+  ArrowLeft, School, Heart, Award, BookOpen, Briefcase
 } from 'lucide-react';
 import { FamilyRelation } from '@prisma/client';
 
@@ -94,18 +94,14 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
         setError(data.error || 'Bilgiler kaydedilirken hata oluştu.');
         setLoading(false);
       } else {
-        setSuccessMsg(
-          data.redirectUrl === '/student/programs'
-            ? 'Profil kaydedildi! 🎉 Size özel ders önerileri hazırlanıyor...'
-            : (data.message || 'Profil başarıyla kaydedildi! Değerler sıralamasına yönlendiriliyorsunuz...')
-        );
+        setSuccessMsg('Profil kaydedildi. Sıradaki adım olan değerler çalışmasına yönlendiriliyorsunuz.');
         setTimeout(() => {
           router.push(data.redirectUrl || '/student/values');
           router.refresh();
         }, 1500);
       }
 
-    } catch (err) {
+    } catch {
       setError('Sunucu bağlantısı sırasında hata oluştu.');
       setLoading(false);
     }
@@ -124,51 +120,33 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Progress Steps Header */}
-      <div className="flex items-center justify-between glass-panel p-4 rounded-2xl border border-white/10">
-        <div 
-          onClick={() => setStep(1)} 
-          className={`flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer transition-all ${
-            step === 1 ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">1</div>
-          <span className="text-sm">Kişisel Bilgiler & Hedefler</span>
-        </div>
-
-        <div className="w-8 h-0.5 bg-white/10 hidden sm:block" />
-
-        <div 
-          onClick={() => setStep(2)} 
-          className={`flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer transition-all ${
-            step === 2 ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-500/30' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">2</div>
-          <span className="text-sm">Aile & Sosyal Destek Ağınız</span>
-        </div>
-
-        <div className="w-8 h-0.5 bg-white/10 hidden sm:block" />
-
-        <div 
-          onClick={() => setStep(3)} 
-          className={`flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer transition-all ${
-            step === 3 ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm">3</div>
-          <span className="text-sm">Özet & XP Ödülü</span>
-        </div>
-      </div>
+      {/* Adım göstergesi bilgilendiricidir; ileri/geri kontrolleri formun sonunda bulunur. */}
+      <nav className="glass-panel rounded-2xl border border-white/10 p-4" aria-label="Profil oluşturma ilerlemesi">
+        <ol className="grid gap-2 sm:grid-cols-3">
+          {['Kişisel bilgiler', 'Destek ağı', 'Kontrol ve kaydet'].map((label, index) => {
+            const stepNumber = index + 1;
+            const isCurrent = step === stepNumber;
+            const isComplete = step > stepNumber;
+            return (
+              <li key={label} aria-current={isCurrent ? 'step' : undefined} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${isCurrent ? 'bg-indigo-600 text-white' : 'text-gray-400'}`}>
+                <span className={`grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold ${isComplete ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10'}`}>
+                  {isComplete ? <CheckCircle2 className="size-4" aria-hidden="true" /> : stepNumber}
+                </span>
+                <span className="text-sm font-bold">{label}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3">
+        <div role="alert" className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-3">
           <span className="font-semibold">Hata:</span> {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm flex items-center gap-3 animate-bounce">
+        <div role="status" className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm flex items-center gap-3">
           <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
           <span className="font-bold">{successMsg}</span>
         </div>
@@ -190,10 +168,10 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Grade Selector */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
+              <fieldset className="space-y-2">
+                <legend className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
                   Kaçıncı Sınıfta Okuyorsunuz?
-                </label>
+                </legend>
                 <div className="grid grid-cols-4 gap-2">
                   {[9, 10, 11, 12].map((g) => (
                     <button
@@ -210,14 +188,16 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
               {/* Birth Year */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
+                <label htmlFor="onboarding-birth-year" className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
                   Doğum Yılınız
                 </label>
                 <select
+                  id="onboarding-birth-year"
+                  name="birthYear"
                   value={birthYear}
                   onChange={(e) => setBirthYear(Number(e.target.value))}
                   className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 text-sm"
@@ -232,10 +212,12 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
               {/* School Name */}
               <div className="space-y-2 sm:col-span-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <label htmlFor="onboarding-school" className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
                   <School className="w-4 h-4 text-indigo-400" /> Okulunuzun Adı
                 </label>
                 <input
+                  id="onboarding-school"
+                  name="schoolName"
                   type="text"
                   value={schoolName}
                   onChange={(e) => setSchoolName(e.target.value)}
@@ -246,10 +228,12 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
               {/* Target Career */}
               <div className="space-y-2 sm:col-span-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <label htmlFor="onboarding-career" className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
                   <Briefcase className="w-4 h-4 text-emerald-400" /> Hedeflediğiniz veya Hayalinizdeki Meslek
                 </label>
                 <input
+                  id="onboarding-career"
+                  name="targetCareer"
                   type="text"
                   value={targetCareer}
                   onChange={(e) => setTargetCareer(e.target.value)}
@@ -260,10 +244,12 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
               {/* Hobbies */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <label htmlFor="onboarding-hobbies" className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
                   <Heart className="w-4 h-4 text-rose-400" /> Hobileriniz ve İlgi Alanlarınız
                 </label>
                 <textarea
+                  id="onboarding-hobbies"
+                  name="hobbies"
                   rows={3}
                   value={hobbies}
                   onChange={(e) => setHobbies(e.target.value)}
@@ -274,10 +260,12 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
               {/* Favorite Subjects */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <label htmlFor="onboarding-subjects" className="block text-xs font-semibold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4 text-amber-400" /> En Sevdiğiniz ve Başarılı Olduğunuz Dersler
                 </label>
                 <textarea
+                  id="onboarding-subjects"
+                  name="favoriteSubjects"
                   rows={3}
                   value={favoriteSubjects}
                   onChange={(e) => setFavoriteSubjects(e.target.value)}
@@ -310,7 +298,7 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Aile & Sosyal Destek Ağınız</h2>
-                  <p className="text-xs text-gray-400">Kariyer kararlarınızda ailenizin beklentilerini ve desteğini anlamamıza yardımcı olun.</p>
+                  <p className="text-xs text-gray-400">Bu adım isteğe bağlıdır. Yalnızca paylaşmak istediğiniz destek kişilerini ekleyin.</p>
                 </div>
               </div>
               <button
@@ -333,7 +321,7 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
                       </span>
                       <span>{getRelationLabel(member.relation)}</span>
                     </div>
-                    {familyMembers.length > 1 && (
+                    {familyMembers.length > 0 && (
                       <button
                         type="button"
                         onClick={() => removeFamilyMember(index)}
@@ -348,8 +336,10 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Relation Select */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase">Yakınlık</label>
+                      <label htmlFor={`family-relation-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase">Yakınlık</label>
                       <select
+                        id={`family-relation-${index}`}
+                        name={`familyMembers.${index}.relation`}
                         value={member.relation}
                         onChange={(e) => updateFamilyMember(index, 'relation', e.target.value as FamilyRelation)}
                         className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
@@ -364,8 +354,10 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
                     {/* Occupation */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase">Mesleği / İşi</label>
+                      <label htmlFor={`family-occupation-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase">Mesleği / İşi</label>
                       <input
+                        id={`family-occupation-${index}`}
+                        name={`familyMembers.${index}.occupation`}
                         type="text"
                         value={member.occupation}
                         onChange={(e) => updateFamilyMember(index, 'occupation', e.target.value)}
@@ -376,8 +368,10 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
                     {/* Education */}
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase">Eğitim Düzeyi</label>
+                      <label htmlFor={`family-education-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase">Eğitim Düzeyi</label>
                       <select
+                        id={`family-education-${index}`}
+                        name={`familyMembers.${index}.educationLevel`}
                         value={member.educationLevel}
                         onChange={(e) => updateFamilyMember(index, 'educationLevel', e.target.value)}
                         className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
@@ -392,11 +386,13 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
                     {/* Closeness Score */}
                     <div className="space-y-1 sm:col-span-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase flex items-center justify-between">
+                      <label htmlFor={`family-closeness-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase flex items-center justify-between">
                         <span>Yakınlık & İletişim (1-5)</span>
                         <span className="text-purple-300 font-bold">{member.closenessScore} Yıldız</span>
                       </label>
                       <input
+                        id={`family-closeness-${index}`}
+                        name={`familyMembers.${index}.closenessScore`}
                         type="range"
                         min="1"
                         max="5"
@@ -408,11 +404,13 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
                     {/* Influence Score */}
                     <div className="space-y-1 sm:col-span-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase flex items-center justify-between">
+                      <label htmlFor={`family-influence-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase flex items-center justify-between">
                         <span>Kariyer Kararınıza Etkisi (1-5)</span>
                         <span className="text-emerald-300 font-bold">{member.influenceScore} / 5</span>
                       </label>
                       <input
+                        id={`family-influence-${index}`}
+                        name={`familyMembers.${index}.influenceScore`}
                         type="range"
                         min="1"
                         max="5"
@@ -424,8 +422,10 @@ export function OnboardingProfileForm({ initialData }: { initialData?: any }) {
 
                     {/* Notes */}
                     <div className="space-y-1 sm:col-span-1">
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase">Özel Not / Beklenti</label>
+                      <label htmlFor={`family-notes-${index}`} className="block text-[11px] font-semibold text-gray-400 uppercase">Özel Not / Beklenti</label>
                       <input
+                        id={`family-notes-${index}`}
+                        name={`familyMembers.${index}.notes`}
                         type="text"
                         value={member.notes}
                         onChange={(e) => updateFamilyMember(index, 'notes', e.target.value)}

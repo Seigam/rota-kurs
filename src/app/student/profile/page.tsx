@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import { StudentProfileHubClient } from '@/components/student/student-profile-hub-client';
 
-export default async function StudentProfilePage() {
+export default async function StudentProfilePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
+  const { tab } = await searchParams;
 
   const profile = await prisma.profile.findUnique({
     where: { userId: user.id },
@@ -13,6 +14,10 @@ export default async function StudentProfilePage() {
       personalityResult: true,
       testAnswers: true,
       goalPlanItems: {
+        orderBy: { createdAt: 'desc' },
+      },
+      counselorNotes: {
+        include: { counselor: true },
         orderBy: { createdAt: 'desc' },
       },
     },
@@ -69,6 +74,7 @@ export default async function StudentProfilePage() {
           }}
           profile={profile}
           stats={stats}
+          initialTab={tab === 'profile' ? 'PROFILE' : tab === 'reports' ? 'REPORTS' : 'STATS'}
         />
       </div>
     </div>

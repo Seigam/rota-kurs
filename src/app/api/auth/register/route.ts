@@ -3,18 +3,12 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { Role } from '@prisma/client';
-
-const registerSchema = z.object({
-  name: z.string().min(2, 'İsim en az 2 karakter olmalıdır'),
-  email: z.string().email('Geçerli bir e-posta adresi giriniz'),
-  password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
-  role: z.nativeEnum(Role).default(Role.STUDENT),
-});
+import { publicStudentRegisterSchema } from '@/lib/public-registration';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const validatedData = registerSchema.parse(body);
+    const validatedData = publicStudentRegisterSchema.parse(body);
 
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
@@ -34,7 +28,7 @@ export async function POST(req: Request) {
         name: validatedData.name,
         email: validatedData.email,
         passwordHash,
-        role: validatedData.role,
+        role: Role.STUDENT,
       },
     });
 

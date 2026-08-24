@@ -38,9 +38,11 @@ interface UserItem {
   createdAt: string;
 }
 
-export function AdminDashboardClient() {
+type AdminTab = 'ANALYTICS' | 'PROGRAMS' | 'USERS' | 'APPROVALS';
+
+export function AdminDashboardClient({ initialTab = 'ANALYTICS' }: { initialTab?: AdminTab }) {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'PROGRAMS' | 'USERS' | 'APPROVALS'>('ANALYTICS');
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [charts, setCharts] = useState<{ mbti: any[]; enneagram: any[]; careers: any[] }>({ mbti: [], enneagram: [], careers: [] });
   const [programs, setPrograms] = useState<ProgramItem[]>([]);
@@ -59,6 +61,11 @@ export function AdminDashboardClient() {
   const [newIsFree, setNewIsFree] = useState(true);
   const [newUrl, setNewUrl] = useState('');
   const [addingProg, setAddingProg] = useState(false);
+
+  const selectTab = (tab: AdminTab) => {
+    setActiveTab(tab);
+    window.history.pushState(null, '', tab === 'ANALYTICS' ? '/admin/dashboard' : `/admin/dashboard?tab=${tab.toLowerCase()}`);
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -266,7 +273,9 @@ export function AdminDashboardClient() {
       {/* Tabs Switcher */}
       <div className="flex items-center gap-3 border-b border-white/10 pb-4 flex-wrap">
         <button
-          onClick={() => setActiveTab('ANALYTICS')}
+          type="button"
+          onClick={() => selectTab('ANALYTICS')}
+          aria-pressed={activeTab === 'ANALYTICS'}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
             activeTab === 'ANALYTICS' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'
           }`}
@@ -276,7 +285,9 @@ export function AdminDashboardClient() {
         </button>
 
         <button
-          onClick={() => setActiveTab('PROGRAMS')}
+          type="button"
+          onClick={() => selectTab('PROGRAMS')}
+          aria-pressed={activeTab === 'PROGRAMS'}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
             activeTab === 'PROGRAMS' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'
           }`}
@@ -286,7 +297,9 @@ export function AdminDashboardClient() {
         </button>
 
         <button
-          onClick={() => setActiveTab('USERS')}
+          type="button"
+          onClick={() => selectTab('USERS')}
+          aria-pressed={activeTab === 'USERS'}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
             activeTab === 'USERS' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'
           }`}
@@ -296,7 +309,9 @@ export function AdminDashboardClient() {
         </button>
 
         <button
-          onClick={() => setActiveTab('APPROVALS')}
+          type="button"
+          onClick={() => selectTab('APPROVALS')}
+          aria-pressed={activeTab === 'APPROVALS'}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
             activeTab === 'APPROVALS' ? 'bg-violet-600 text-white shadow-lg' : 'bg-white/5 text-gray-400 hover:text-white'
           }`}

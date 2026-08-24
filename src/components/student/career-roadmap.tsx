@@ -211,7 +211,7 @@ export function CareerRoadmap({ snapshot }: { snapshot: RoadmapSnapshot }) {
       : 0;
 
   return (
-    <div className={`${styles.roadmapShell} min-h-full`}>
+    <div className={`${styles.roadmapShell} roadmap-theme min-h-full`}>
       <div className={styles.aurora} aria-hidden="true" />
       <div className={styles.gridTexture} aria-hidden="true" />
 
@@ -348,13 +348,13 @@ export function CareerRoadmap({ snapshot }: { snapshot: RoadmapSnapshot }) {
         </header>
 
         <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <main id="rota" className="scroll-mt-24">
+          <section id="rota" className="scroll-mt-24" aria-labelledby="roadmap-stages-title">
             <div className="mb-5 flex items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-300">
                   Rota günlüğü
                 </p>
-                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">
+                <h2 id="roadmap-stages-title" className="mt-2 text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">
                   Dört durakta geleceğe hazırlan
                 </h2>
               </div>
@@ -453,10 +453,10 @@ export function CareerRoadmap({ snapshot }: { snapshot: RoadmapSnapshot }) {
                 </p>
               </div>
             </div>
-          </main>
+          </section>
 
           <aside className="space-y-5 xl:sticky xl:top-24" aria-label="Yol haritası özeti">
-            <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 backdrop-blur-md p-6 text-center shadow-2xl relative overflow-hidden">
+            <section className={`${styles.planCard} rounded-[28px] p-6 text-center relative overflow-hidden`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 mx-auto mb-4 relative z-10">
                 <CalendarDays className="h-6 w-6" />

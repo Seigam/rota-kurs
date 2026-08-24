@@ -1,11 +1,12 @@
 import { requireRole } from '@/lib/auth-utils';
 import { ProgramsExplorer } from '@/components/student/programs-explorer';
 import Link from 'next/link';
-import { Award, ArrowLeft, Sparkles, Heart } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Role } from '@prisma/client';
 
-export default async function StudentProgramsPage() {
+export default async function StudentProgramsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireRole([Role.STUDENT, Role.ADMIN]);
+  const { tab } = await searchParams;
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-10 relative overflow-hidden">
@@ -21,18 +22,18 @@ export default async function StudentProgramsPage() {
           </Link>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
-              Yapay Zeka Destekli Kariyer Rotaları
+              Açıklanabilir ve doğrulanmış kariyer rotaları
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Kişiselleştirilmiş <span className="text-gradient">Öneri & Sertifika Programları</span>
+            Kişiselleştirilmiş <span className="text-gradient">Program Önerileri</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-2xl mt-1">
-            Kural tabanlı eşleşme motoru; hedeflerinizi, ilgi etiketlerinizi, RIASEC profilinizi, sınıf seviyenizi ve gerçek ilerleme verinizi kullanır. MBTI ve Enneagram puanı değiştirmez.
+            Gelişim nabzınız, hedefleriniz, değerleriniz, RIASEC ilginiz ve sınıf düzeyiniz birlikte kullanılır. Yüzde yerine açıklanabilir uyum bandı gösterilir; MBTI ve Enneagram sıralamayı değiştirmez.
           </p>
         </div>
 
-        <ProgramsExplorer />
+        <ProgramsExplorer initialTab={tab === 'favorites' ? 'FAVORITES' : 'ALL'} />
       </div>
     </div>
   );

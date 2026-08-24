@@ -22,6 +22,21 @@ describe('AI geçidi retry ve şema davranışı', () => {
     delete process.env.AI_UPSTREAM_TIMEOUT_MS;
   });
 
+  it('token gerektirmeyen servise Authorization başlığı olmadan istek gönderir', async () => {
+    delete process.env.AI_API_KEY;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({ goals: safeGoalTemplate(LifeDomain.CAREER, 'SHORT_TERM') }) } }],
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runAiTask({ definition: AI_TASKS.suggestGoals(suggestGoalsOutputSchema), profileId: 'p1', input: {} }))
+      .resolves.toMatchObject({ data: { goals: expect.any(Array) } });
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(requestInit.headers).toMatchObject({ 'Content-Type': 'application/json' });
+    expect(requestInit.headers).not.toHaveProperty('Authorization');
+  });
+
   it('yalnız 503 taşıma hatasında bir kez tekrar dener', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 }));
     vi.stubGlobal('fetch', fetchMock);

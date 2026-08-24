@@ -3,13 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Briefcase, BookOpen, Sparkles, Users, Heart, Coins, Save,
+  BookOpen, Sparkles, Users, Save,
   CheckCircle2, AlertCircle, Sparkle, Plus, Trash2, ArrowRight, Compass, Clock
 } from 'lucide-react';
 import { LifeDomain } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import { AiFeedback } from '@/components/student/ai-feedback';
 import { GOAL_TIME_HORIZONS, getGoalTimeHorizon, type GoalTimeHorizonValue } from '@/lib/goal-time-horizon';
+import {
+  getPlanningDomainGroup,
+  PLANNING_DOMAIN_GROUPS,
+  resolvePlanningDomain,
+  type PlanningDomainGroupKey,
+} from '@/lib/planning-domain-groups';
 
 interface PlanStepItem {
   id: string;
@@ -31,6 +37,7 @@ interface AiResultMeta {
 }
 
 interface DomainPlanState {
+  domain?: LifeDomain;
   timeHorizon: GoalTimeHorizonValue | '';
   wishText: string;
   selectedGoal: string;
@@ -38,67 +45,47 @@ interface DomainPlanState {
   savedId?: string;
 }
 
+interface SavedGoal {
+  id: string;
+  domain: LifeDomain;
+  timeHorizon?: GoalTimeHorizonValue | null;
+  wishText?: string | null;
+  selectedGoal?: string | null;
+  planSteps?: PlanStepItem[];
+}
+
+const GROUP_ICONS: Record<PlanningDomainGroupKey, LucideIcon> = {
+  LEARNING_FUTURE: BookOpen,
+  SELF_DEVELOPMENT_WELLBEING: Sparkles,
+  RELATIONSHIPS_PARTICIPATION: Users,
+};
+
+const GROUP_STYLES: Record<PlanningDomainGroupKey, { colorClass: string; bgClass: string }> = {
+  LEARNING_FUTURE: { colorClass: 'text-indigo-400', bgClass: 'bg-indigo-500/10 border-indigo-500/30' },
+  SELF_DEVELOPMENT_WELLBEING: { colorClass: 'text-amber-400', bgClass: 'bg-amber-500/10 border-amber-500/30' },
+  RELATIONSHIPS_PARTICIPATION: { colorClass: 'text-emerald-400', bgClass: 'bg-emerald-500/10 border-emerald-500/30' },
+};
+
 const DOMAINS_INFO: Array<{
-  key: LifeDomain;
+  key: PlanningDomainGroupKey;
   label: string;
   desc: string;
+  includes: string;
   icon: LucideIcon;
   colorClass: string;
   bgClass: string;
-}> = [
-  {
-    key: 'CAREER',
-    label: 'Kariyer & Mesleki',
-    desc: 'Hangi sektör, meslek veya stajları hedefliyorsunuz?',
-    icon: Briefcase,
-    colorClass: 'text-indigo-400',
-    bgClass: 'bg-indigo-500/10 border-indigo-500/30',
-  },
-  {
-    key: 'ACADEMIC',
-    label: 'Akademik & Okul',
-    desc: 'Sınav netleri, yabancı dil veya üniversite hedefleriniz neler?',
-    icon: BookOpen,
-    colorClass: 'text-purple-400',
-    bgClass: 'bg-purple-500/10 border-purple-500/30',
-  },
-  {
-    key: 'PERSONAL_DEV',
-    label: 'Kişisel Gelişim',
-    desc: 'Hangi yazılım, sanat, müzik veya liderlik becerisini kazanacaksınız?',
-    icon: Sparkles,
-    colorClass: 'text-amber-400',
-    bgClass: 'bg-amber-500/10 border-amber-500/30',
-  },
-  {
-    key: 'SOCIAL',
-    label: 'Sosyal & İlişkiler',
-    desc: 'Aile, arkadaşlık, kulüpler ve sosyal sorumluluk ağınız nasıl olsun?',
-    icon: Users,
-    colorClass: 'text-emerald-400',
-    bgClass: 'bg-emerald-500/10 border-emerald-500/30',
-  },
-  {
-    key: 'HEALTH',
-    label: 'Sağlık & Yaşam Tarzı',
-    desc: 'Spor, beslenme, uyku düzeni ve zihinsel esenlik adımlarınız neler?',
-    icon: Heart,
-    colorClass: 'text-rose-400',
-    bgClass: 'bg-rose-500/10 border-rose-500/30',
-  },
-  {
-    key: 'FINANCIAL',
-    label: 'Finansal Farkındalık',
-    desc: 'Burs, bütçe yönetimi, birikim ve gelecekteki maddi hedefleriniz?',
-    icon: Coins,
-    colorClass: 'text-teal-400',
-    bgClass: 'bg-teal-500/10 border-teal-500/30',
-  },
-];
+}> = PLANNING_DOMAIN_GROUPS.map((group) => ({
+  key: group.key,
+  label: group.label,
+  desc: group.description,
+  includes: group.includes,
+  icon: GROUP_ICONS[group.key],
+  ...GROUP_STYLES[group.key],
+}));
 
 export function LifeDomainsMatrix() {
   const router = useRouter();
-  const [activeDomain, setActiveDomain] = useState<LifeDomain>('CAREER');
+  const [activeDomain, setActiveDomain] = useState<PlanningDomainGroupKey>('LEARNING_FUTURE');
   const [loading, setLoading] = useState(true);
   const [generatingGoals, setGeneratingGoals] = useState(false);
   const [generatingSteps, setGeneratingSteps] = useState(false);
@@ -119,8 +106,11 @@ export function LifeDomainsMatrix() {
         const stateMap: Record<string, DomainPlanState> = {};
 
         if (res.ok && data.goals) {
-          data.goals.forEach((item: any) => {
-            stateMap[item.domain] = {
+          data.goals.forEach((item: SavedGoal) => {
+            const group = getPlanningDomainGroup(item.domain);
+            if (!group || stateMap[group.key]) return;
+            stateMap[group.key] = {
+              domain: item.domain,
               savedId: item.id,
               timeHorizon: item.timeHorizon || '',
               wishText: item.wishText || '',
@@ -187,13 +177,15 @@ export function LifeDomainsMatrix() {
 
     setErrorMsg('');
     setGeneratingGoals(true);
+    const planningDomain = resolvePlanningDomain(activeDomain, currentDomainState.wishText, currentDomainState.domain);
+    updateCurrentState({ domain: planningDomain });
     try {
       const res = await fetch('/api/student/ai/goals-planner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'suggest_goals',
-          domain: activeDomain,
+          domain: planningDomain,
           timeHorizon: currentDomainState.timeHorizon,
           wishText: currentDomainState.wishText,
         }),
@@ -209,7 +201,7 @@ export function LifeDomainsMatrix() {
       } else {
         setErrorMsg(data.error || 'Hedef önerisi alınamadı.');
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('Sunucu hatası oluştu.');
     } finally {
       setGeneratingGoals(false);
@@ -218,7 +210,8 @@ export function LifeDomainsMatrix() {
 
   const handleSelectGoal = async (goalText: string) => {
     if (!currentDomainState.timeHorizon) return;
-    updateCurrentState({ selectedGoal: goalText });
+    const planningDomain = resolvePlanningDomain(activeDomain, `${currentDomainState.wishText} ${goalText}`, currentDomainState.domain);
+    updateCurrentState({ domain: planningDomain, selectedGoal: goalText });
     setGeneratingSteps(true);
     try {
       const res = await fetch('/api/student/ai/goals-planner', {
@@ -226,7 +219,7 @@ export function LifeDomainsMatrix() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'plan_steps',
-          domain: activeDomain,
+          domain: planningDomain,
           timeHorizon: currentDomainState.timeHorizon,
           selectedGoal: goalText,
         }),
@@ -280,12 +273,20 @@ export function LifeDomainsMatrix() {
     setSuccessMsg('');
 
     try {
+      const resolvedDomain = resolvePlanningDomain(
+        activeDomain,
+        `${currentDomainState.wishText} ${currentDomainState.selectedGoal}`,
+        currentDomainState.domain,
+      );
+      const domainToSave = currentDomainState.savedId && currentDomainState.domain
+        ? currentDomainState.domain
+        : resolvedDomain;
       const res = await fetch('/api/student/goals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: currentDomainState.savedId,
-          domain: activeDomain,
+          domain: domainToSave,
           timeHorizon: currentDomainState.timeHorizon,
           wishText: currentDomainState.wishText,
           selectedGoal: currentDomainState.selectedGoal,
@@ -297,13 +298,13 @@ export function LifeDomainsMatrix() {
       if (res.ok) {
         setSuccessMsg('Bu alan için hedefleriniz ve eylem planınız kaydedildi!');
         if (data.goal?.id) {
-          updateCurrentState({ savedId: data.goal.id });
+          updateCurrentState({ savedId: data.goal.id, domain: data.goal.domain });
         }
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
         setErrorMsg(data.error || 'Kaydedilemedi.');
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('Bağlantı hatası.');
     } finally {
       setSaving(false);
@@ -349,7 +350,7 @@ export function LifeDomainsMatrix() {
       )}
 
       {/* Domain Selector Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Üç ana hedef alanı">
         {DOMAINS_INFO.map((dom) => {
           const Icon = dom.icon;
           const isSelected = activeDomain === dom.key;
@@ -363,7 +364,8 @@ export function LifeDomainsMatrix() {
                 setActiveDomain(dom.key);
                 setErrorMsg('');
               }}
-              className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 relative ${
+              aria-pressed={isSelected}
+              className={`min-h-36 p-4 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 relative ${
                 isSelected
                   ? `${dom.bgClass} shadow-lg ring-1 ring-indigo-400/50`
                   : 'bg-white/5 border-white/10 hover:border-white/20'
@@ -378,7 +380,8 @@ export function LifeDomainsMatrix() {
                 )}
               </div>
               <div>
-                <div className="text-xs font-bold text-white leading-tight">{dom.label}</div>
+                <div className="text-sm font-extrabold text-white leading-tight">{dom.label}</div>
+                <div className="mt-2 text-[11px] leading-4 text-gray-400">{dom.includes}</div>
               </div>
             </button>
           );
@@ -396,6 +399,7 @@ export function LifeDomainsMatrix() {
             <div>
               <h2 className="text-xl sm:text-2xl font-extrabold text-white">{activeInfo.label}</h2>
               <p className="text-xs text-gray-400 mt-0.5">{activeInfo.desc}</p>
+              <p className="mt-2 text-[11px] font-bold text-indigo-300">{activeInfo.includes}</p>
             </div>
           </div>
           <button

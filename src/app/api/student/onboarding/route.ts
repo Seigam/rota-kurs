@@ -99,9 +99,6 @@ export async function POST(req: Request) {
       profileId = newProfile.id;
     }
 
-    // isFirstTime: profil daha önce tamamlanmamışsa true
-    const isFirstTime = !existingProfile?.completedOnboarding;
-
     if (profileId) {
       // Eski aile üyelerini silip yenilerini ekleyelim
       await prisma.familyMember.deleteMany({
@@ -174,7 +171,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       message: 'Onboarding başarıyla tamamlandı. +50 XP kazanıldı!',
       success: true,
-      redirectUrl: isFirstTime ? '/student/programs' : '/student/values',
+      redirectUrl: '/student/values',
     });
 
   } catch (error: any) {

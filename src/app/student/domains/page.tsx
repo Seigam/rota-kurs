@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { LifeDomainsMatrix } from '@/components/student/life-domains-matrix';
 import Link from 'next/link';
-import { Target, ArrowLeft, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Role } from '@prisma/client';
 
 export default async function StudentDomainsPage() {
@@ -89,7 +89,7 @@ export default async function StudentDomainsPage() {
             Yapay Zeka Destekli <span className="text-gradient">Hedef ve Eylem Planı</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-2xl mt-1">
-            İsteklerinizi yazın, yapay zeka sizin için SMART hedefler ve adım adım eylem planları oluştursun! Hazırladığınız planları kaydedip görevleri tamamladıkça Deneyim Puanı (XP) kazanın.
+            Üç ana alandan birini seçin; isteğinizi yazın, yapay zeka sizin için SMART hedefler ve adım adım eylem planları oluştursun. Hazırladığınız planları kaydedip görevleri tamamladıkça Deneyim Puanı (XP) kazanın.
           </p>
         </div>
 

@@ -77,13 +77,13 @@ JSON Schema (sunucu destekliyorsa) → zorunlu Zod → güvenlik kontrolü → k
 PostgreSQL/Prisma: `CatalogItem`, `CareerInterestResult`, `AiGeneration`, `AiFeedback`, öğrenciye ait hedefler  
 Ham prompt/yanıt yok · doğrulanmış katalog · sürümlü migration · ayrı seed işi
 
-↓ TLS + zorunlu bearer token
+↓ TLS + isteğe bağlı bearer token (tokensiz kullanım açık ortam onayı gerektirir)
 
 **Kontrollü model servisi**  
 `yz.gamehost.dev` ters proxy → SGLang/vLLM → Qwen3.5-9B  
 Anonim `/models` kapalı · inference rate limitli · prompt/response loglama kapalı
 
-**Operasyon notu:** uygulama kodu bearer tokenı ve HTTPS’i zorunlu kılar; uzak ters proxy’nin gerçekten devreye alınması ve anonim erişimin kapandığının dış ağdan doğrulanması yayın öncesi operasyon kapısıdır. Bu doğrulama tamamlanmadan gerçek öğrenci pilotu açılmaz.
+**Operasyon notu:** uygulama kodu HTTPS’i zorunlu kılar; Bearer token kullanımı isteğe bağlıdır. Tokensiz üretim erişimi `AI_ALLOW_ANONYMOUS=true` ile açıkça onaylanmalı ve ağ katmanında sınırlandırılmalıdır. Bu doğrulama tamamlanmadan gerçek öğrenci pilotu açılmaz.
 
 ## Üç temel kullanım örneği
 

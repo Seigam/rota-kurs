@@ -1,183 +1,212 @@
 'use client';
 
+import { useEffect, useId, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, User, LogOut, Shield, GraduationCap, Users, Sparkles } from 'lucide-react';
+import {
+  Compass,
+  Activity,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Route,
+  Shield,
+  Target,
+  UserRound,
+  Users,
+  X,
+} from 'lucide-react';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon?: typeof Compass;
+};
+
+const publicItems: NavItem[] = [
+  { href: '/#nasil-calisir', label: 'Nasıl çalışır?' },
+  { href: '/mikro-yeterlilikler', label: 'Program kataloğu' },
+];
+
+const studentItems: NavItem[] = [
+  { href: '/student/dashboard', label: 'Genel bakış', icon: LayoutDashboard },
+  { href: '/student/development', label: 'Gelişim nabzım', icon: Activity },
+  { href: '/student/roadmap', label: 'Yol haritam', icon: Route },
+  { href: '/student/goals', label: 'Hedeflerim', icon: Target },
+  { href: '/student/lesson-path', label: 'Ders rotam', icon: GraduationCap },
+];
+
+function isActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
 
-  const getRoleBadge = (role?: string) => {
-    switch (role) {
-      case 'STUDENT':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            <GraduationCap className="w-3.5 h-3.5" /> Öğrenci
-          </span>
-        );
-      case 'TEACHER':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            <Users className="w-3.5 h-3.5" /> Rehber Öğretmen
-          </span>
-        );
-      case 'ADMIN':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            <Shield className="w-3.5 h-3.5" /> Yönetici
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+  useEffect(() => {
+    if (!menuOpen) return;
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
 
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [menuOpen]);
+
+  const role = session?.user?.role;
+  const dashboardHref =
+    role === 'TEACHER'
+      ? '/teacher/dashboard'
+      : role === 'ADMIN'
+        ? '/admin/dashboard'
+        : '/student/dashboard';
+
+  const items =
+    status === 'authenticated'
+      ? role === 'STUDENT'
+        ? studentItems
+        : [{ href: dashboardHref, label: role === 'ADMIN' ? 'Yönetici paneli' : 'Danışmanlık paneli', icon: role === 'ADMIN' ? Shield : Users }]
+      : publicItems;
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">
-              <Compass className="w-6 h-6 text-white animate-pulse" />
-            </div>
-            <div>
-              <span className="text-lg font-black tracking-tight text-white group-hover:text-indigo-300 transition-colors">
-                <span className="text-gradient">FutuRoute</span>
-              </span>
-              <span className="block text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-                Hayat Boyu Öğrenme
-              </span>
-            </div>
-          </Link>
+    <header className="sticky top-0 z-50 border-b border-app-border bg-background/95 text-app-text shadow-[0_1px_0_rgba(23,32,51,0.04)] backdrop-blur-xl">
+      <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link
+          href={status === 'authenticated' ? dashboardHref : '/'}
+          className="group flex min-h-12 items-center gap-3 rounded-xl"
+          aria-label="FutuRoute ana sayfa"
+        >
+          <span className="grid size-10 place-items-center rounded-[14px] bg-app-brand text-white shadow-[0_7px_0_var(--primary-shadow)] transition-transform group-hover:-translate-y-0.5">
+            <Compass className="size-5" aria-hidden="true" />
+          </span>
+          <span>
+            <span className="block text-lg font-black tracking-[-0.03em]">FutuRoute</span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-app-muted">
+              Gelecek pusulan
+            </span>
+          </span>
+        </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/"
-              className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname === '/' ? 'text-indigo-400 font-semibold' : 'text-gray-300'
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Ana menü">
+          {items.map((item) => {
+            const active = isActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={`min-h-11 rounded-xl px-4 py-3 text-sm font-bold transition-colors ${
+                  active
+                    ? 'bg-app-brand-soft text-app-brand-ink'
+                    : 'text-app-muted hover:bg-app-surface hover:text-app-text'
                 }`}
-            >
-              Ana Sayfa
-            </Link>
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-            {status === 'authenticated' && session?.user && (
-              <>
-                {session.user.role === 'STUDENT' && (
-                  <>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {status === 'loading' ? (
+            <div className="h-11 w-28 animate-pulse rounded-xl bg-app-surface-muted" aria-label="Oturum yükleniyor" />
+          ) : status === 'authenticated' && session?.user ? (
+            <>
+              <Link
+                href={role === 'STUDENT' ? '/student/profile' : dashboardHref}
+                className="hidden min-h-11 items-center gap-2 rounded-xl border border-app-border bg-app-surface px-3 text-sm font-bold text-app-text hover:border-app-brand sm:flex"
+                aria-label="Profilimi aç"
+              >
+                <UserRound className="size-4 text-app-brand" aria-hidden="true" />
+                <span className="max-w-28 truncate">{session.user.name || 'Profilim'}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="hidden size-11 place-items-center rounded-xl text-app-muted hover:bg-app-danger-soft hover:text-app-danger sm:grid"
+                aria-label="Çıkış yap"
+                title="Çıkış yap"
+              >
+                <LogOut className="size-5" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link href="/login" className="grid min-h-11 place-items-center rounded-xl px-4 text-sm font-bold text-app-text hover:bg-app-surface">
+                Giriş yap
+              </Link>
+              <Link href="/register" className="grid min-h-11 place-items-center rounded-xl bg-app-brand px-4 text-sm font-extrabold text-white shadow-[0_5px_0_var(--primary-shadow)] hover:bg-app-brand-hover">
+                Ücretsiz başla
+              </Link>
+            </div>
+          )}
 
-                    <Link
-                      href="/student/roadmap"
-                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/roadmap') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-                        }`}
-                    >
-                      Öğrenci Paneli
-                    </Link>
-                    <Link
-                      href="/student/goals"
-                      className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/student/goals') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
-                        }`}
-                    >
-                      Hedef Takibi
-                    </Link>
-                    <Link
-                      href="/student/lesson-path"
-                      className={`text-sm font-medium transition-colors hover:text-yellow-400 ${pathname.startsWith('/student/lesson-path') ? 'text-yellow-400 font-semibold' : 'text-gray-300'
-                        }`}
-                    >
-                      Ders Rotası
-                    </Link>
-                    <Link
-                      href="/student/interests"
-                      className={`text-sm font-medium transition-colors hover:text-purple-400 ${pathname.startsWith('/student/interests') ? 'text-purple-400 font-semibold' : 'text-gray-300'}`}
-                    >
-                      İlgi Profili
-                    </Link>
-                    <Link
-                      href="/student/profile"
-                      className={`text-sm font-medium transition-colors hover:text-indigo-400 ${pathname.startsWith('/student/profile') ? 'text-indigo-400 font-semibold' : 'text-gray-300'
-                        }`}
-                    >
-                      Profil & İstatistikler
-                    </Link>
-                  </>
-                )}
+          <button
+            type="button"
+            className="grid size-11 place-items-center rounded-xl border border-app-border bg-app-surface text-app-text lg:hidden"
+            aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          </button>
+        </div>
+      </div>
 
-                {session.user.role === 'TEACHER' && (
-                  <Link
-                    href="/teacher/dashboard"
-                    className={`text-sm font-medium transition-colors hover:text-purple-400 ${pathname.startsWith('/teacher') ? 'text-purple-400 font-semibold' : 'text-gray-300'
-                      }`}
-                  >
-                    Danışmanlık Paneli
-                  </Link>
-                )}
-
-                {session.user.role === 'ADMIN' && (
-                  <Link
-                    href="/admin/dashboard"
-                    className={`text-sm font-medium transition-colors hover:text-emerald-400 ${pathname.startsWith('/admin') ? 'text-emerald-400 font-semibold' : 'text-gray-300'
-                      }`}
-                  >
-                    Yönetici Paneli
-                  </Link>
-                )}
-              </>
-            )}
-          </nav>
-
-          {/* User Auth Section */}
-          <div className="flex items-center gap-4">
-            {status === 'loading' ? (
-              <div className="w-24 h-8 bg-white/5 animate-pulse rounded-lg" />
-            ) : status === 'authenticated' && session?.user ? (
-              <div className="flex items-center gap-3 bg-white/5 py-1.5 px-3 rounded-xl border border-white/10">
+      {menuOpen && (
+        <nav id={menuId} className="border-t border-app-border bg-background px-4 py-4 lg:hidden" aria-label="Mobil menü">
+          <div className="mx-auto grid max-w-7xl gap-2">
+            {items.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(pathname, item.href);
+              return (
                 <Link
-                  href={session.user.role === 'STUDENT' ? '/student/dashboard' : session.user.role === 'TEACHER' ? '/teacher/dashboard' : '/admin/dashboard'}
-                  className="flex items-center gap-3 group"
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-bold ${
+                    active ? 'bg-app-brand-soft text-app-brand-ink' : 'bg-app-surface text-app-text'
+                  }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600/30 flex items-center justify-center border border-indigo-500/40 group-hover:bg-indigo-500/40 transition-colors">
-                    <User className="w-4 h-4 text-indigo-300" />
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="text-xs font-semibold text-white truncate max-w-[120px] group-hover:text-indigo-300 transition-colors">
-                      {session.user.name || session.user.email}
-                    </div>
-                    <div className="mt-0.5">{getRoleBadge(session.user.role)}</div>
-                  </div>
+                  {Icon && <Icon className="size-5" aria-hidden="true" />}
+                  {item.label}
                 </Link>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="ml-1 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                  title="Çıkış Yap"
-                >
-                  <LogOut className="w-4 h-4" />
+              );
+            })}
+
+            {status === 'authenticated' && session?.user ? (
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-app-border pt-4">
+                <Link onClick={() => setMenuOpen(false)} href={role === 'STUDENT' ? '/student/profile' : dashboardHref} className="grid min-h-12 place-items-center rounded-xl bg-app-surface text-sm font-bold text-app-text">
+                  Profilim
+                </Link>
+                <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="min-h-12 rounded-xl bg-app-danger-soft text-sm font-bold text-app-danger">
+                  Çıkış yap
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/login"
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-200 hover:text-white hover:bg-white/5 transition-all"
-                >
-                  Giriş Yap
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-app-border pt-4">
+                <Link onClick={() => setMenuOpen(false)} href="/login" className="grid min-h-12 place-items-center rounded-xl bg-app-surface text-sm font-bold text-app-text">
+                  Giriş yap
                 </Link>
-                <Link
-                  href="/register"
-                  className="glow-button px-4 py-2 rounded-xl text-sm font-semibold text-white tracking-wide"
-                >
-                  Kayıt Ol
+                <Link onClick={() => setMenuOpen(false)} href="/register" className="grid min-h-12 place-items-center rounded-xl bg-app-brand text-sm font-extrabold text-white">
+                  Ücretsiz başla
                 </Link>
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </nav>
+      )}
     </header>
   );
 }
-

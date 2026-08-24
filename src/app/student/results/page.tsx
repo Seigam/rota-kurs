@@ -2,10 +2,11 @@ import { requireRole } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { 
-  Award, Sparkles, Compass, Target, Star, Heart, ArrowRight, 
-  CheckCircle2, BookOpen, ExternalLink, Printer, ShieldCheck, AlertCircle 
+  Sparkles, Compass, Target, Star, ArrowRight,
+  BookOpen, ExternalLink, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { Role } from '@prisma/client';
+import { PrintReportButton } from '@/components/student/print-report-button';
 
 export default async function StudentResultsPage() {
   const user = await requireRole([Role.STUDENT, Role.ADMIN]);
@@ -83,15 +84,7 @@ export default async function StudentResultsPage() {
               <Compass className="w-4 h-4 text-purple-400" />
               <span>Detaylı MBTI Analizi</span>
             </Link>
-            <button
-              onClick={() => {
-                if (typeof window !== 'undefined') window.print();
-              }}
-              className="glow-button px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-2 shadow-lg"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Raporu Yazdır / PDF</span>
-            </button>
+            <PrintReportButton />
           </div>
         </div>
 

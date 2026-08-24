@@ -3,214 +3,148 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Compass, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, GraduationCap, Users, Shield } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Compass,
+  GraduationCap,
+  Lock,
+  Mail,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'STUDENT' | 'TEACHER' | 'ADMIN'>('STUDENT');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email, password }),
       });
+      const data = await response.json();
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (!response.ok) {
         setError(data.error || 'Kayıt olurken bir hata oluştu.');
         setLoading(false);
-      } else {
-        setSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
-        setTimeout(() => {
-          router.push('/login');
-        }, 1500);
+        return;
       }
-    } catch (err) {
-      setError('Sunucu ile bağlantı kurulamadı.');
+
+      setSuccess('Hesabın hazır. Şimdi giriş yapıp başlangıç rotanı tamamlayabilirsin.');
+      window.setTimeout(() => router.push('/login?registered=1'), 900);
+    } catch {
+      setError('Sunucu ile bağlantı kurulamadı. Lütfen tekrar deneyin.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-      {/* Decorative ambient glow */}
-      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+    <div className="paper-shell flex flex-1 items-center px-4 py-10 sm:px-6">
+      <div className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-[32px] border border-app-border bg-app-surface shadow-[0_24px_70px_var(--shadow-color)] lg:grid-cols-[0.8fr_1.2fr]">
+        <aside className="relative overflow-hidden bg-app-brand p-7 text-white sm:p-10">
+          <div className="absolute -right-16 -top-16 size-48 rounded-full border-[30px] border-white/10" aria-hidden="true" />
+          <div className="relative">
+            <span className="grid size-12 place-items-center rounded-2xl bg-white/15">
+              <Compass className="size-6" aria-hidden="true" />
+            </span>
+            <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.16em] text-indigo-100">Öğrenci hesabı</p>
+            <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Kendi rotanı oluşturmaya başla.</h1>
+            <p className="mt-4 max-w-sm leading-7 text-indigo-100">
+              İlk girişte seni kısa bir başlangıç rotası karşılayacak. Profil, değerler ve hedefler adım adım tamamlanacak.
+            </p>
 
-      <div className="w-full max-w-lg space-y-6 relative z-10">
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-emerald-500 shadow-xl shadow-indigo-500/20 mb-2">
-            <Compass className="w-8 h-8 text-white animate-pulse" />
+            <ol className="mt-8 space-y-3" aria-label="Kayıt sonrası adımlar">
+              {['Temel profilini tamamla', 'Önceliklerini ve hedeflerini seç', 'Sana özel önerilerini gör'].map((step, index) => (
+                <li key={step} className="flex items-center gap-3 text-sm font-bold text-white">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/15 text-xs">{index + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Yeni Hesap <span className="text-gradient">Oluştur</span>
-          </h1>
-          <p className="text-sm text-gray-400">
-            Kariyer ve keşif yolculuğuna başlamak için rolünüzü seçin ve kaydolun.
-          </p>
-        </div>
+        </aside>
 
-        <div className="glass-panel rounded-3xl p-8 shadow-2xl border border-white/10">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <section className="p-6 sm:p-10" aria-labelledby="registration-form-title">
+          <div className="flex items-start gap-3 rounded-2xl border border-app-border bg-app-surface-muted p-4">
+            <GraduationCap className="mt-0.5 size-5 shrink-0 text-app-brand" aria-hidden="true" />
+            <div>
+              <h2 id="registration-form-title" className="font-black text-app-text">Ücretsiz öğrenci kaydı</h2>
+              <p className="mt-1 text-sm leading-6 text-app-muted">Öğretmen ve yönetici hesapları güvenlik nedeniyle okul yönetimi tarafından oluşturulur.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-7 space-y-5">
             {error && (
-              <div className="flex items-center gap-2 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-shake">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div role="alert" className="flex items-start gap-2 rounded-2xl border border-app-danger/30 bg-app-danger-soft p-4 text-sm font-semibold text-app-danger">
+                <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="flex items-center gap-2 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+              <div role="status" className="flex items-start gap-2 rounded-2xl border border-app-accent/30 bg-app-accent-soft p-4 text-sm font-semibold text-app-accent">
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                 <span>{success}</span>
               </div>
             )}
 
-            {/* Role Selector */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                Giriş Rolünüzü Seçiniz
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole('STUDENT')}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                    role === 'STUDENT'
-                      ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                      : 'bg-black/20 border-white/10 text-gray-400 hover:border-white/20'
-                  }`}
-                >
-                  <GraduationCap className={`w-6 h-6 ${role === 'STUDENT' ? 'text-indigo-400' : 'text-gray-500'}`} />
-                  <span className="text-xs font-bold">Öğrenci</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole('TEACHER')}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                    role === 'TEACHER'
-                      ? 'bg-purple-600/30 border-purple-500 text-white shadow-lg shadow-purple-500/20'
-                      : 'bg-black/20 border-white/10 text-gray-400 hover:border-white/20'
-                  }`}
-                >
-                  <Users className={`w-6 h-6 ${role === 'TEACHER' ? 'text-purple-400' : 'text-gray-500'}`} />
-                  <span className="text-xs font-bold">Öğretmen</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole('ADMIN')}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                    role === 'ADMIN'
-                      ? 'bg-emerald-600/30 border-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                      : 'bg-black/20 border-white/10 text-gray-400 hover:border-white/20'
-                  }`}
-                >
-                  <Shield className={`w-6 h-6 ${role === 'ADMIN' ? 'text-emerald-400' : 'text-gray-500'}`} />
-                  <span className="text-xs font-bold">Yönetici</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Name Input */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                Ad Soyad
-              </label>
+            <div>
+              <label htmlFor="register-name" className="mb-2 block text-sm font-extrabold text-app-text">Ad soyad</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <User className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ali Yılmaz"
-                  className="w-full pl-11 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                />
+                <User className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-app-subtle" aria-hidden="true" />
+                <input id="register-name" name="name" autoComplete="name" type="text" required value={name} onChange={(event) => setName(event.target.value)} placeholder="Ali Yılmaz" className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface pl-11 pr-4 text-sm text-app-text" />
               </div>
             </div>
 
-            {/* Email Input */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                E-posta Adresi
-              </label>
+            <div>
+              <label htmlFor="register-email" className="mb-2 block text-sm font-extrabold text-app-text">E-posta adresi</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <Mail className="w-5 h-5" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ogrenci@okul.edu.tr"
-                  className="w-full pl-11 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                />
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-app-subtle" aria-hidden="true" />
+                <input id="register-email" name="email" autoComplete="email" inputMode="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ogrenci@okul.edu.tr" className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface pl-11 pr-4 text-sm text-app-text" />
               </div>
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                Şifre
-              </label>
+            <div>
+              <div className="mb-2 flex items-end justify-between gap-4">
+                <label htmlFor="register-password" className="text-sm font-extrabold text-app-text">Şifre</label>
+                <span id="password-help" className="text-xs font-semibold text-app-muted">En az 6 karakter</span>
+              </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="En az 6 karakter"
-                  className="w-full pl-11 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                />
+                <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-app-subtle" aria-hidden="true" />
+                <input id="register-password" name="password" autoComplete="new-password" aria-describedby="password-help" type="password" required minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} className="min-h-12 w-full rounded-xl border border-app-border bg-app-surface pl-11 pr-4 text-sm text-app-text" />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full glow-button py-3 px-4 rounded-xl text-white font-bold text-sm tracking-wide shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group mt-4"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Kayıt Ol ve Başla</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
+            <button type="submit" disabled={loading || Boolean(success)} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-app-brand px-5 font-extrabold text-white shadow-[0_6px_0_var(--primary-shadow)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? 'Hesabın hazırlanıyor…' : 'Öğrenci hesabı oluştur'}
+              {!loading && <ArrowRight className="size-5" aria-hidden="true" />}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-sm text-gray-400">
-          Zaten bir hesabınız var mı?{' '}
-          <Link href="/login" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
-            Giriş Yapın
-          </Link>
-        </p>
+          <div className="mt-6 flex items-start gap-2 text-sm text-app-muted">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-app-accent" aria-hidden="true" />
+            <p>Kaydolarak yalnızca öğrenci hesabı oluşturursun. Yetkili personel rolleri bu formdan verilemez.</p>
+          </div>
+
+          <p className="mt-6 border-t border-app-border pt-5 text-center text-sm text-app-muted">
+            Zaten hesabın var mı?{' '}
+            <Link href="/login" className="font-extrabold text-app-brand-ink hover:underline">Giriş yap</Link>
+          </p>
+        </section>
       </div>
     </div>
   );

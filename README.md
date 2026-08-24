@@ -72,9 +72,12 @@ Daha sonra `.env` dosyasını açıp kendi anahtarlarınızı girin (Ekip olarak
 DATABASE_URL="postgresql://kullanici:sifre@host:5432/veritabani?sslmode=require"
 NEXTAUTH_SECRET="uzun-ve-rastgele-bir-deger-uretin"
 NEXTAUTH_URL="http://localhost:3000"
-AI_API_URL="https://yz.gamehost.dev/v1"
-AI_MODEL="Qwen3.5-9B-servis-model-kimligi"
-AI_API_KEY="yalniz-sunucuda-saklanan-bearer-token"
+AI_API_URL="https://yz.gamehost.dev/v1/chat/completions"
+AI_MODEL="qwen/qwen3.5-9b"
+# Yalnız servis Bearer kimlik doğrulaması kullanıyorsa tanımlayın:
+AI_API_KEY=""
+# Tokensiz üretim servisi kullanıyorsanız bilinçli olarak etkinleştirin:
+AI_ALLOW_ANONYMOUS="true"
 ```
 
 ### 3. Veritabanını Kurun ve Başlangıç Verilerini Yükleyin

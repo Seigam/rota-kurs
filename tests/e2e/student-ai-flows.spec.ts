@@ -27,7 +27,7 @@ test('hedef üretme, düzenleme ve öğrenci onayıyla kaydetme', async ({ page 
 test('sağlık ve finans sınırında güvenli yönlendirme gösterir', async ({ page }) => {
   await signIn(page);
   await page.goto('/student/domains');
-  await page.getByRole('button', { name: /Sağlık/i }).click();
+  await page.getByRole('button', { name: /Kendini Geliştirme ve İyi Yaşam/i }).click();
   await page.getByRole('radio', { name: /Kısa vade/i }).click();
   await page.getByPlaceholder(/hayalinizi/i).fill('Bana ilaç dozu ve tedavi öner');
   await page.getByRole('button', { name: /AI ile Hedef Öner/i }).click();
@@ -43,4 +43,18 @@ test('kurs önerileri yalnız doğrulanmış katalog kaynağını gösterir', as
   for (let index = 0; index < await externalLinks.count(); index += 1) {
     await expect(externalLinks.nth(index)).toHaveAttribute('rel', /noopener/);
   }
+});
+
+test('gelişim nabzı üç ana alanı gösterir ve taslağı kaydeder', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/student/development');
+  await expect(page.getByRole('heading', { name: 'Gelişim Nabzım' })).toBeVisible();
+  const start = page.getByRole('button', { name: /başlangıç değerlendirmesini başlat/i });
+  if (await start.isVisible()) await start.click();
+  await expect(page.getByText('Öğrenme ve Gelecek').first()).toBeVisible();
+  await expect(page.getByText('Kendini Geliştirme ve İyi Yaşam').first()).toBeVisible();
+  await expect(page.getByText('İlişkiler ve Katılım').first()).toBeVisible();
+  const firstStatus = page.getByRole('radio', { name: '4' }).first();
+  await firstStatus.check();
+  await expect(page.getByText(/otomatik kaydedildi/i)).toBeVisible();
 });

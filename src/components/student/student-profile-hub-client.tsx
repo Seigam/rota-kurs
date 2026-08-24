@@ -6,14 +6,11 @@ import {
   BarChart3,
   User,
   FileText,
-  Award,
   CheckCircle2,
   Target,
-  BookOpen,
   ArrowRight,
   ShieldCheck,
   TrendingUp,
-  Clock,
   Compass,
   AlertCircle
 } from 'lucide-react';
@@ -33,14 +30,23 @@ interface StudentProfileHubProps {
     completionRate: number;
     hasPersonalityTest: boolean;
   };
+  initialTab?: ProfileTab;
 }
+
+type ProfileTab = 'STATS' | 'PROFILE' | 'REPORTS';
 
 export function StudentProfileHubClient({
   user,
   profile,
   stats,
+  initialTab = 'STATS',
 }: StudentProfileHubProps) {
-  const [activeTab, setActiveTab] = useState<'STATS' | 'PROFILE' | 'REPORTS'>('STATS');
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
+
+  const selectTab = (tab: ProfileTab) => {
+    setActiveTab(tab);
+    window.history.pushState(null, '', tab === 'STATS' ? '/student/profile' : `/student/profile?tab=${tab.toLowerCase()}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -94,7 +100,9 @@ export function StudentProfileHubClient({
       {/* 3 Ana Sekme Gezinti Çubuğu */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-2xl bg-black/40 border border-white/10">
         <button
-          onClick={() => setActiveTab('STATS')}
+          type="button"
+          onClick={() => selectTab('STATS')}
+          aria-pressed={activeTab === 'STATS'}
           className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all ${
             activeTab === 'STATS'
               ? 'bg-indigo-600 text-white shadow-lg'
@@ -106,7 +114,9 @@ export function StudentProfileHubClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('PROFILE')}
+          type="button"
+          onClick={() => selectTab('PROFILE')}
+          aria-pressed={activeTab === 'PROFILE'}
           className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all ${
             activeTab === 'PROFILE'
               ? 'bg-indigo-600 text-white shadow-lg'
@@ -118,7 +128,9 @@ export function StudentProfileHubClient({
         </button>
 
         <button
-          onClick={() => setActiveTab('REPORTS')}
+          type="button"
+          onClick={() => selectTab('REPORTS')}
+          aria-pressed={activeTab === 'REPORTS'}
           className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all ${
             activeTab === 'REPORTS'
               ? 'bg-indigo-600 text-white shadow-lg'
@@ -274,6 +286,30 @@ export function StudentProfileHubClient({
                 </Link>
               </div>
             )}
+
+            <div className="grid gap-4 border-t border-white/10 pt-6 lg:grid-cols-2">
+              <Link href="/student/results" className="rounded-2xl border border-indigo-500/25 bg-indigo-500/10 p-5 hover:border-indigo-500/50">
+                <FileText className="size-5 text-indigo-400" aria-hidden="true" />
+                <h4 className="mt-3 text-sm font-bold text-white">Bütüncül gelecek raporu</h4>
+                <p className="mt-1 text-xs leading-5 text-gray-400">Kişilik, değerler, hedefler ve program önerilerini tek raporda gör.</p>
+              </Link>
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <ShieldCheck className="size-5 text-emerald-400" aria-hidden="true" />
+                <h4 className="mt-3 text-sm font-bold text-white">Rehber öğretmen notları</h4>
+                {profile?.counselorNotes?.length ? (
+                  <ul className="mt-3 space-y-3">
+                    {profile.counselorNotes.map((note: any) => (
+                      <li key={note.id} className="rounded-xl bg-black/20 p-3 text-xs leading-5 text-gray-300">
+                        <p>{note.content}</p>
+                        <p className="mt-2 font-bold text-emerald-400">{note.counselor?.name || 'Rehber öğretmen'} · {new Date(note.createdAt).toLocaleDateString('tr-TR')}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs leading-5 text-gray-400">Henüz paylaşılmış bir görüşme notu yok.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

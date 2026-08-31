@@ -6,8 +6,8 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "next dev -p 4000",
-    "start": "next start -p 4000",
+    "dev": "next dev -p $PORT_NUMBER",
+    "start": "next start -p $PORT_NUMBER",
     "postinstall": "prisma generate",
     "build": "prisma generate && next build",
     "db:migrate:deploy": "prisma migrate deploy",

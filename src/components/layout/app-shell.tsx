@@ -23,6 +23,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { LogoMark, LogoWordmark } from '@/components/layout/logo';
 import type { LucideIcon } from 'lucide-react';
 
 import { Navbar } from '@/components/layout/navbar';
@@ -145,15 +146,12 @@ function itemIsActive(
 
 function Brand({ compact = false, href }: { compact?: boolean; href: string }) {
   return (
-    <Link href={href} className={`group flex min-h-12 items-center rounded-xl ${compact ? 'justify-center' : 'gap-3'}`} aria-label="FutuRoute ana sayfa">
-      <span className="grid size-10 shrink-0 place-items-center rounded-[14px] bg-app-brand text-white shadow-[0_6px_0_var(--primary-shadow)] transition-transform group-hover:-translate-y-0.5">
-        <Compass className="size-5" aria-hidden="true" />
+    <Link href={href} className={`group flex min-h-12 items-center rounded-xl transition-opacity hover:opacity-95 ${compact ? 'justify-center' : 'gap-3'}`} aria-label="FutuRoute ana sayfa">
+      <span className="grid size-10 shrink-0 place-items-center rounded-[14px] bg-app-surface border border-app-border/80 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-transform group-hover:-translate-y-0.5">
+        <LogoMark className="size-6" />
       </span>
       {!compact && (
-        <span className="min-w-0">
-          <span className="block text-lg font-black tracking-[-0.03em] text-app-text">FutuRoute</span>
-          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-app-muted">Gelecek pusulan</span>
-        </span>
+        <LogoWordmark className="h-7 w-auto max-w-[145px]" />
       )}
     </Link>
   );

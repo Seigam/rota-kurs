@@ -5,15 +5,18 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  AlertCircle,
-  ArrowRight,
   Compass,
-  GraduationCap,
-  Lock,
   Mail,
-  ShieldCheck,
+  Lock,
+  ArrowRight,
+  AlertCircle,
   Sparkles,
+  KeyRound,
+  LogIn,
+  GraduationCap,
+  ShieldCheck,
 } from 'lucide-react';
+import { LogoMark, LogoWordmark } from '@/components/layout/logo';
 
 const demoAccounts = [
   { label: 'Öğrenci demosu', email: 'ogrenci@okul.edu.tr', password: 'ogrenci123', icon: GraduationCap },
@@ -63,8 +66,12 @@ export default function LoginPage() {
         <aside className="relative overflow-hidden bg-app-brand p-7 text-white sm:p-10">
           <div className="absolute -bottom-20 -left-20 size-60 rounded-full border-[38px] border-white/10" aria-hidden="true" />
           <div className="relative flex h-full flex-col">
-            <span className="grid size-12 place-items-center rounded-2xl bg-white/15"><Compass className="size-6" aria-hidden="true" /></span>
-            <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.16em] text-indigo-100">FutuRoute</p>
+            <span className="grid size-12 place-items-center rounded-2xl bg-white/95 shadow-md">
+              <LogoMark className="size-8" />
+            </span>
+            <div className="mt-8">
+              <LogoWordmark className="h-6 w-auto" inverted />
+            </div>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Kaldığın yerden devam et.</h1>
             <p className="mt-4 max-w-sm leading-7 text-indigo-100">Hesabın rolünü otomatik tanır; öğrenci, öğretmen ve yönetici için tek ve güvenli giriş.</p>
             <div className="mt-auto pt-10 text-sm font-bold text-indigo-100">Sıradaki adımın girişten sonra hazır olacak.</div>

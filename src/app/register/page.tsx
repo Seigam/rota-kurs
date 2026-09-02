@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   User,
 } from 'lucide-react';
+import { LogoMark, LogoWordmark } from '@/components/layout/logo';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -58,10 +59,12 @@ export default function RegisterPage() {
         <aside className="relative overflow-hidden bg-app-brand p-7 text-white sm:p-10">
           <div className="absolute -right-16 -top-16 size-48 rounded-full border-[30px] border-white/10" aria-hidden="true" />
           <div className="relative">
-            <span className="grid size-12 place-items-center rounded-2xl bg-white/15">
-              <Compass className="size-6" aria-hidden="true" />
+            <span className="grid size-12 place-items-center rounded-2xl bg-white/95 shadow-md">
+              <LogoMark className="size-8" />
             </span>
-            <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.16em] text-indigo-100">Öğrenci hesabı</p>
+            <div className="mt-8">
+              <LogoWordmark className="h-6 w-auto" inverted />
+            </div>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Kendi rotanı oluşturmaya başla.</h1>
             <p className="mt-4 max-w-sm leading-7 text-indigo-100">
               İlk girişte seni kısa bir başlangıç rotası karşılayacak. Profil, değerler ve hedefler adım adım tamamlanacak.

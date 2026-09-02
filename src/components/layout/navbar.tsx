@@ -18,6 +18,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { LogoMark, LogoWordmark } from '@/components/layout/logo';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 type NavItem = {
@@ -81,18 +82,13 @@ export function Navbar() {
       <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href={status === 'authenticated' ? dashboardHref : '/'}
-          className="group flex min-h-12 items-center gap-3 rounded-xl"
+          className="group flex min-h-12 items-center gap-3 rounded-xl transition-opacity hover:opacity-95"
           aria-label="FutuRoute ana sayfa"
         >
-          <span className="grid size-10 place-items-center rounded-[14px] bg-app-brand text-white shadow-[0_7px_0_var(--primary-shadow)] transition-transform group-hover:-translate-y-0.5">
-            <Compass className="size-5" aria-hidden="true" />
+          <span className="grid size-10 place-items-center rounded-[14px] bg-app-surface border border-app-border/80 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-transform group-hover:-translate-y-0.5">
+            <LogoMark className="size-6" />
           </span>
-          <span>
-            <span className="block text-lg font-black tracking-[-0.03em]">FutuRoute</span>
-            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-app-muted">
-              Gelecek pusulan
-            </span>
-          </span>
+          <LogoWordmark className="h-7 w-auto max-w-[150px] sm:max-w-none" />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Ana menü">

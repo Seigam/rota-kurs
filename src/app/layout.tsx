@@ -6,6 +6,14 @@ import { AppShell } from "@/components/layout/app-shell";
 export const metadata: Metadata = {
   title: "FutuRoute | Hayat Boyu Öğrenme",
   description: "Lise öğrencileri için kişiselleştirilmiş kariyer, aile ve psikolojik rehberlik keşif platformu. Kişilik testini çöz, kariyer hedefini belirle.",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
